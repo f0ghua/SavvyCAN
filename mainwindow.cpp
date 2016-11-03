@@ -8,6 +8,10 @@
 #include "utility.h"
 #include "serialworker.h"
 
+#ifdef VENDOR_SAPA
+#include <QDesktopWidget>
+#endif
+
 /*
 Compile for all platforms and create release (remember to include QScintilla libs) and make Win32 binary.
 
@@ -181,10 +185,21 @@ MainWindow::MainWindow(QWidget *parent) :
     //Automatically create the connection window so it can be updated even if we never opened it.
     connectionWindow = new ConnectionWindow();
     connect(connectionWindow, SIGNAL(updateConnectionSettings(QString,QString,int,int)), this, SLOT(updateConnectionSettings(QString,QString,int,int)));
+
+#ifdef VENDOR_SAPA
+	QDesktopWidget* desktop = QApplication::desktop(); 
+	int w = desktop->availableGeometry().width() * 3 / 4;	
+	int h = w * 600 / 850;	
+	resize(w, h);
+#endif
+
 }
 
 MainWindow::~MainWindow()
 {
+#ifdef VENDOR_SAPA
+	updateTimer.stop();
+#endif	
     serialWorkerThread.quit();
     serialWorkerThread.wait();
     //delete worker;

@@ -6,7 +6,7 @@
 #include <QSettings>
 
 SerialWorker::SerialWorker(CANFrameModel *model, QObject *parent) : QObject(parent)
-{    
+{
     serial = NULL;
     rx_state = IDLE;
     rx_step = 0;
@@ -59,9 +59,52 @@ void SerialWorker::readSettings()
         doValidation = true;
     }
     else doValidation = false;
-    //doValidation=false;
+
+#ifdef VENDOR_SAPA
+	doValidation=false;
+#endif
 }
 
+#ifdef VENDOR_SAPA
+void SerialWorker::setSerialPort(QSerialPortInfo *port)
+{
+    QSettings settings;
+
+    currentPort = port;
+
+    if (serial != NULL)
+    {
+        if (serial->isOpen())
+        {
+            serial->clear();
+            serial->close();
+        }
+        serial->disconnect(); //disconnect all signals
+        delete serial;
+    }
+
+    serial = new QSerialPort(*port);
+
+    qDebug() << "Serial port name is " << port->portName();
+
+	serial->setBaudRate(57600);
+	serial->setDataBits(QSerialPort::Data8);
+	serial->setParity(QSerialPort::NoParity);
+	serial->setStopBits(QSerialPort::OneStop);
+	serial->setFlowControl(QSerialPort::NoFlowControl);
+
+    if (!serial->open(QIODevice::ReadWrite))
+    {
+        qDebug() << serial->errorString();
+    }
+
+    connected = true;
+	emit connectionSuccess(can0Baud, can1Baud);
+    connect(serial, SIGNAL(readyRead()), this, SLOT(readSerialData()));
+
+
+}
+#else
 void SerialWorker::setSerialPort(QSerialPortInfo *port)
 {
     QSettings settings;
@@ -126,6 +169,7 @@ void SerialWorker::setSerialPort(QSerialPortInfo *port)
     connect(serial, SIGNAL(readyRead()), this, SLOT(readSerialData()));
     if (doValidation) QTimer::singleShot(1000, this, SLOT(connectionTimeout()));
 }
+#endif
 
 void SerialWorker::connectionTimeout()
 {
@@ -157,6 +201,18 @@ void SerialWorker::readSerialData()
     }
 }
 
+#ifdef VENDOR_SAPA
+
+#define PROTOCOL_ID_CAN1           0x50
+#define PROTOCOL_ID_CAN2           0x58
+
+#define IS_BIT_SET(data, bit)  (((data)>>(bit))&0x1)
+#define SET_BIT(data, bit) (data) = (data)|(1<<(bit))
+#define CLEAR_BIT(data, bit) (data) = (data)&(~(1<<(bit)))
+
+static const char g_frameEndStr[2]  = {(char)0xFF, 0x00};
+static const quint8 g_frameEscapeChar = 0xFF;
+
 void SerialWorker::sendFrame(const CANFrame *frame, int bus = 0)
 {
     QByteArray buffer;
@@ -168,7 +224,60 @@ void SerialWorker::sendFrame(const CANFrame *frame, int bus = 0)
 
     //qDebug() << "Sending out frame with id " << frame->ID;
 
-    //show our sent frames in the list too. This happens even if we're not connected.    
+    //show our sent frames in the list too. This happens even if we're not connected.
+    canModel->addFrame(tempFrame, false);
+    framesRapid++;
+
+    if (serial == NULL) return;
+    if (!serial->isOpen()) return;
+    if (!connected) return;
+
+    ID = frame->ID;
+    if (frame->extended) ID |= 1 << 31;
+
+    char protocol = (bus & 1)?PROTOCOL_ID_CAN2:PROTOCOL_ID_CAN1;
+    /**
+     * bit 1: 1 = Tx
+     * bit 0: 0 = No timestamp
+     * In order to debug the own App, we alwasy set dir to Rx
+     */
+    buffer[0] = protocol; //+ (1<<1);
+	buffer[1] = 0;
+    if (frame->extended) SET_BIT(buffer[1], 7);
+    if (!frame->extended) {
+        buffer[1] = ((unsigned char)buffer.at(1))|((ID >> 8) & 0x07);
+        buffer.append((unsigned char)(ID & 0xFF));
+    } else {
+        buffer[1] = ((char)buffer[1])|((ID >> 24) & 0x1F);
+        buffer.append((unsigned char)(ID >> 16));
+        buffer.append((unsigned char)(ID >> 8));
+        buffer.append((unsigned char)(ID & 0xFF));
+    }
+
+    for (c = 0; c < frame->len; c++) {
+        buffer.append(frame->data[c]);
+        if ((quint8)frame->data[c] == 0xFF) {
+            buffer.append(0xFF);
+        }
+    }
+    buffer.append(QByteArray::fromRawData(g_frameEndStr, sizeof(g_frameEndStr)));
+
+    //qDebug() << "writing " << buffer.length() << " bytes to serial port";
+    serial->write(buffer);
+}
+#else
+void SerialWorker::sendFrame(const CANFrame *frame, int bus = 0)
+{
+    QByteArray buffer;
+    int c;
+    int ID;
+    CANFrame tempFrame = *frame;
+    tempFrame.isReceived = false;
+    tempFrame.timestamp = ((QDateTime::currentMSecsSinceEpoch() - txTimestampBasis) * 1000);
+
+    //qDebug() << "Sending out frame with id " << frame->ID;
+
+    //show our sent frames in the list too. This happens even if we're not connected.
     canModel->addFrame(tempFrame, false);
     framesRapid++;
 
@@ -196,6 +305,7 @@ void SerialWorker::sendFrame(const CANFrame *frame, int bus = 0)
     //qDebug() << "writing " << buffer.length() << " bytes to serial port";
     serial->write(buffer);
 }
+#endif
 
 //a simple way for another thread to pass us a bunch of frames to send.
 //Don't get carried away here. The GVRET firmware only has finite
