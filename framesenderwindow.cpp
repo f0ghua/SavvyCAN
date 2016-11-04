@@ -19,6 +19,11 @@ FrameSenderWindow::FrameSenderWindow(const QVector<CANFrame> *frames, QWidget *p
 {
     ui->setupUi(this);
 
+#ifdef VENDOR_SAPA
+	Qt::WindowFlags flags = Qt::Dialog;
+	flags |= (Qt::WindowMinimizeButtonHint|Qt::WindowCloseButtonHint);
+	setWindowFlags(flags);
+#endif
     modelFrames = frames;
 
     intervalTimer = new QTimer();
