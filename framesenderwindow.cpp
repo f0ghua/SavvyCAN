@@ -63,6 +63,9 @@ void FrameSenderWindow::createBlankRow()
 {
     int row = ui->tableSender->rowCount();
     ui->tableSender->insertRow(row);
+#ifndef F_NO_DEBUG
+	qDebug() << QString("%1, create blank row = %2").arg(__LINE__).arg(row);
+#endif
 
     QTableWidgetItem *item = new QTableWidgetItem();
     item->setFlags(item->flags() |Qt::ItemIsUserCheckable);
@@ -285,7 +288,12 @@ void FrameSenderWindow::loadSenderFile(QString filename)
         return;
     }
 
+#ifdef VENDOR_SAPA	
+	ui->tableSender->setRowCount(0);
+	ui->tableSender->clearContents(); 
+#else
     ui->tableSender->clear();
+#endif
     sendingData.clear();
 
     while (!inFile->atEnd()) {
@@ -294,15 +302,33 @@ void FrameSenderWindow::loadSenderFile(QString filename)
         {
             QList<QByteArray> tokens = line.split('#');
             int row = ui->tableSender->rowCount();
+#ifdef VENDOR_SAPA	
+#ifndef F_NO_DEBUG
+			qDebug() << QString("%1, row = %2").arg(__LINE__).arg(row);
+#endif
+			if (row == 0) 
+				createBlankRow();
+			else // new blank row will be added in onCellChanged 
+				row--;
+
+			ui->tableSender->item(row, 0)->setFlags(
+				ui->tableSender->item(row, 0)->flags() |Qt::ItemIsUserCheckable
+				);
+#else
+			// insert row will cause crash issue with null real object
             ui->tableSender->insertRow(row);
-            ui->tableSender->item(row, 0)->setFlags(Qt::ItemIsUserCheckable);
+			ui->tableSender->item(row, 0)->setFlags(Qt::ItemIsUserCheckable);
+#endif
             if (tokens[0] == "T")
             {
                 ui->tableSender->item(row, 0)->setCheckState(Qt::Checked);
             }
             else ui->tableSender->item(row, 0)->setCheckState(Qt::Unchecked);
             for (int i = 0; i < 7; i++) ui->tableSender->item(row, i)->setText(tokens[i]);
+#ifndef VENDOR_SAPA
+			// no need to this since data change will trigger it auto
             for (int k = 0; k < 7; k++) processCellChange(row, k);
+#endif
 
         }
     }
@@ -313,7 +339,7 @@ void FrameSenderWindow::loadSenderFile(QString filename)
 void FrameSenderWindow::onCellChanged(int row, int col)
 {
     if (inhibitChanged) return;
-    qDebug() << "onCellChanged";
+    qDebug() << QString("onCellChanged: %1, %2").arg(row).arg(col);
     if (row == ui->tableSender->rowCount() - 1)
     {
         createBlankRow();
@@ -717,6 +743,10 @@ void FrameSenderWindow::processCellChange(int line, int col)
     QStringList tokens;
     int tempVal;
 
+#ifndef F_NO_DEBUG
+	qDebug() << QString("%1, line = %2, count = %3").arg(__LINE__).arg(line).arg(sendingData.count());
+#endif 
+
     //if this is a new line then create the base object for the line
     if (line >= sendingData.count())
     {
@@ -725,14 +755,32 @@ void FrameSenderWindow::processCellChange(int line, int col)
         sendingData.append(tempData);
     }
 
+#ifndef F_NO_DEBUG
+	qDebug() << QString("%1, line = %2, count = %3").arg(__LINE__).arg(line).arg(sendingData.count());
+#endif 
+
     sendingData[line].count = 0;
+#ifndef F_NO_DEBUG
+	qDebug() << QString("%1, line = %2, count = %3").arg(__LINE__).arg(line).arg(sendingData.count());
+#endif 
 
     switch (col)
     {
-        case 0: //Enable check box
+        case 0: //Enable check box       
             if (ui->tableSender->item(line, 0)->checkState() == Qt::Checked)
             {
-                sendingData[line].enabled = true;
+
+#ifdef VENDOR_SAPA            
+            	if (sendingData[line].enabled == false) {					
+					for (int j = 0; j < sendingData[line].triggers.count(); j++)
+        			{
+            			Trigger *trigger = &sendingData[line].triggers[j];
+            			trigger->currCount = 0;
+            			trigger->msCounter = 0;
+					}					
+            	}
+#endif				
+				sendingData[line].enabled = true;
             }
             else sendingData[line].enabled = false;
             qDebug() << "Setting enabled to " << sendingData[line].enabled;
