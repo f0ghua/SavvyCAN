@@ -203,15 +203,64 @@ void SerialWorker::readSerialData()
 
 #ifdef VENDOR_SAPA
 
-#define PROTOCOL_ID_CAN1           0x50
-#define PROTOCOL_ID_CAN2           0x58
-
-#define IS_BIT_SET(data, bit)  (((data)>>(bit))&0x1)
-#define SET_BIT(data, bit) (data) = (data)|(1<<(bit))
-#define CLEAR_BIT(data, bit) (data) = (data)&(~(1<<(bit)))
-
 static const char g_frameEndStr[2]  = {(char)0xFF, 0x00};
 static const quint8 g_frameEscapeChar = 0xFF;
+
+void SerialWorker::procRXChar(unsigned char c)
+{
+    static unsigned char ffFlag = 0;
+    static QByteArray cba = QByteArray();
+
+    if ((c == 0xFF) && (ffFlag == 0)) // first 0xFF
+    {
+        ffFlag = 1;
+        return;
+    }
+
+    if (ffFlag == 0)
+    {
+        cba.append(c);
+    }
+    else
+    {
+        ffFlag = 0;
+        if (c == 0xFF) // 2 0xFF, the first one means escape character
+        {
+            //buildFrame->data.append(c);
+            cba.append(c);
+        }
+        else if (c == 0x00) // end of message
+        {
+            buildFrame->buildFrame(cba);
+            if (capturing)
+            {
+                buildFrame->isReceived = true;
+                canModel->addFrame(*buildFrame, false);
+                    //take the time the frame came in and try to resync the time base.
+                if (continuousTimeSync) txTimestampBasis = QDateTime::currentMSecsSinceEpoch() - (buildFrame->timestamp / 1000);
+                framesRapid++;
+                if (buildFrame->ID == targetID) emit gotTargettedFrame(canModel->rowCount() - 1);
+            }
+            cba.clear();
+        }
+        else // a new message start
+        {
+            buildFrame->buildFrame(cba);
+            if (capturing)
+            {
+                buildFrame->isReceived = true;
+                canModel->addFrame(*buildFrame, false);
+                    //take the time the frame came in and try to resync the time base.
+                if (continuousTimeSync) txTimestampBasis = QDateTime::currentMSecsSinceEpoch() - (buildFrame->timestamp / 1000);
+                framesRapid++;
+                if (buildFrame->ID == targetID) emit gotTargettedFrame(canModel->rowCount() - 1);
+            }
+            cba.clear();
+
+            cba.append(c);
+        }
+    }
+}
 
 void SerialWorker::sendFrame(const CANFrame *frame, int bus = 0)
 {
@@ -337,6 +386,7 @@ void SerialWorker::updateBaudRates(int Speed1, int Speed2)
     serial->write(buffer);
 }
 
+#ifndef VENDOR_SAPA
 void SerialWorker::procRXChar(unsigned char c)
 {
     switch (rx_state)
@@ -567,6 +617,7 @@ void SerialWorker::procRXChar(unsigned char c)
 
     }
 }
+#endif
 
 void SerialWorker::handleTick()
 {
