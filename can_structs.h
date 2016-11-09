@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #ifdef VENDOR_SAPA
-#include <QByteArray.h>
+#include <QByteArray>
 
 #define SAINT_PROTOCOL_ID_MASK  0xF8    // bit 3 ~ 7
 #define SAINT_COMMAND_MASK      0x40
