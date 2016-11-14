@@ -29,6 +29,9 @@ private slots:
     void saveGrid();
     void loadGrid();
     void updatedFrames(int);
+#ifdef VENDOR_SAPA
+    void on_btnReArrange_clicked();
+#endif
 
 signals:
     void sendCANFrame(const CANFrame *, int);
