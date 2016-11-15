@@ -832,7 +832,8 @@ void FrameSenderWindow::processCellChange(int line, int col)
 
 #ifdef VENDOR_SAPA
 #include <limits>
-void FrameSenderWindow::resizeMe()
+
+void FrameSenderWindow::on_btnReArrange_clicked()
 {
 	ui->tableSender->setVisible(false);
 	QRect vporig = ui->tableSender->viewport()->geometry();
@@ -844,12 +845,6 @@ void FrameSenderWindow::resizeMe()
 	ui->tableSender->viewport()->setGeometry(vporig);
 	ui->tableSender->setVisible(true);
 	
-	resize(minimumSizeHint());
-}
-
-void FrameSenderWindow::on_btnReArrange_clicked()
-{
-	//ui->tableSender->resizeColumnsToContents();
-	QTimer::singleShot(0, this, SLOT(resizeMe()));
+	QTimer::singleShot(0, this, [=](){resize(minimumSizeHint());});
 }
 #endif
