@@ -832,11 +832,9 @@ void FrameSenderWindow::processCellChange(int line, int col)
 
 #ifdef VENDOR_SAPA
 #include <limits>
-void FrameSenderWindow::on_btnReArrange_clicked()
+void FrameSenderWindow::resizeMe()
 {
-	//ui->tableSender->resizeColumnsToContents();
 	ui->tableSender->setVisible(false);
-	
 	QRect vporig = ui->tableSender->viewport()->geometry();
 	QRect vpnew = vporig;
 	vpnew.setWidth(std::numeric_limits<int>::max());
@@ -844,8 +842,14 @@ void FrameSenderWindow::on_btnReArrange_clicked()
 	ui->tableSender->resizeColumnsToContents();
 	ui->tableSender->resizeRowsToContents();
 	ui->tableSender->viewport()->setGeometry(vporig);
-	
 	ui->tableSender->setVisible(true);
+	
+	resize(minimumSizeHint());
+}
 
+void FrameSenderWindow::on_btnReArrange_clicked()
+{
+	//ui->tableSender->resizeColumnsToContents();
+	QTimer::singleShot(0, this, SLOT(resizeMe()));
 }
 #endif

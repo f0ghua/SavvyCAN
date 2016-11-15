@@ -30,6 +30,7 @@ private slots:
     void loadGrid();
     void updatedFrames(int);
 #ifdef VENDOR_SAPA
+	void resizeMe();
     void on_btnReArrange_clicked();
 #endif
 
