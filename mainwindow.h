@@ -140,7 +140,9 @@ private:
     DiscreteStateWindow *discreteStateWindow;
     FirmwareUploaderWindow *firmwareUploaderWindow;
     ConnectionWindow *connectionWindow;
+#ifndef VENDOR_SAPA
     ScriptingWindow *scriptingWindow;
+#endif
     RangeStateWindow *rangeWindow;
     DBCLoadSaveWindow *dbcFileWindow;
     FuzzingWindow *fuzzingWindow;

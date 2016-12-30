@@ -39,7 +39,6 @@ SOURCES += main.cpp\
     firmwareuploaderwindow.cpp \
     discretestatewindow.cpp \
     connectionwindow.cpp \
-    scriptingwindow.cpp \
     scriptcontainer.cpp \
     canfilter.cpp \
     rangestatewindow.cpp \
@@ -77,7 +76,6 @@ HEADERS  += mainwindow.h \
     firmwareuploaderwindow.h \
     discretestatewindow.h \
     connectionwindow.h \
-    scriptingwindow.h \
     scriptcontainer.h \
     canfilter.h \
     rangestatewindow.h \
@@ -117,3 +115,10 @@ DISTFILES +=
 RESOURCES += \
     icons.qrc \
     images.qrc
+
+if (contains(DEFINES, VENDOR_SAPA)) {
+    TARGET = SCSapa
+} else {
+    SOURCES += scriptingwindow.cpp
+    HEADERS += scriptingwindow.h
+}

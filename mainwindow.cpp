@@ -97,7 +97,9 @@ MainWindow::MainWindow(QWidget *parent) :
     firmwareUploaderWindow = NULL;
     discreteStateWindow = NULL;
     connectionWindow = NULL;
+#ifndef VENDOR_SAPA
     scriptingWindow = NULL;
+#endif
     rangeWindow = NULL;
     dbcFileWindow = NULL;
     fuzzingWindow = NULL;
@@ -187,9 +189,13 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(connectionWindow, SIGNAL(updateConnectionSettings(QString,QString,int,int)), this, SLOT(updateConnectionSettings(QString,QString,int,int)));
 
 #ifdef VENDOR_SAPA
+	this->setWindowTitle("SCSapa V" + QString::number(VERSION));
+
 	QDesktopWidget* desktop = QApplication::desktop(); 
-	int w = desktop->availableGeometry().width() * 3 / 4;	
-	int h = w * 600 / 850;	
+	//int w = desktop->availableGeometry().width() * 3 / 4;	
+	//int h = w * 600 / 850;
+	int h = desktop->availableGeometry().height() * 3 / 4;
+    int w = h * 850 / 600; 
 	resize(w, h);
 #endif
 
@@ -263,12 +269,14 @@ MainWindow::~MainWindow()
         connectionWindow->close();
         delete connectionWindow;
     }
-   
+	
+#ifndef VENDOR_SAPA
     if (scriptingWindow)
     {
         scriptingWindow->close();
         delete scriptingWindow;
     }
+#endif
 
     if (rangeWindow)
     {
@@ -320,7 +328,9 @@ void MainWindow::exitApp()
     if (connectionWindow) connectionWindow->close();
     if (settingsDialog) settingsDialog->close();
     if (discreteStateWindow) discreteStateWindow->close();
+#ifndef VENDOR_SAPA
     if (scriptingWindow) scriptingWindow->close();
+#endif
     if (rangeWindow) rangeWindow->close();
     if (dbcFileWindow) dbcFileWindow->close();
     if (fuzzingWindow) fuzzingWindow->close();
@@ -1018,12 +1028,14 @@ void MainWindow::showUDSScanWindow()
 
 void MainWindow::showScriptingWindow()
 {
+#ifndef VENDOR_SAPA
     if (!scriptingWindow)
     {
         scriptingWindow = new ScriptingWindow(model->getListReference());
         connect(scriptingWindow, &ScriptingWindow::sendCANFrame, worker, &SerialWorker::sendFrame);
     }
     scriptingWindow->show();
+#endif
 }
 
 void MainWindow::showRangeWindow()
