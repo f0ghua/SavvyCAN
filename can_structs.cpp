@@ -48,8 +48,17 @@ bool CANFrame::buildFrame(QByteArray &ba)
     }
 
     len = ba.length() - i;
+
+	// frames received from h/w has 1 byte complete code and 2 bytes timestamp
+	// at the tailer. In order to support debug without h/w, we should support
+	// both with and w/o these tailer.
+	//
+	// Since the frames from h/w always has timestamp but from app not, so we do
+	// actions on complete code and timestamp when hasTimeStamp flag raised
+	// only.
+
     if (hasTimeStamp)
-        len -= 2;
+        len -= (2+1);
 
     if ((len < 0) || (len > 8))
     	return false;
@@ -59,9 +68,10 @@ bool CANFrame::buildFrame(QByteArray &ba)
     }
 
     i += len;
+	quint8 completeCode = ba.at(i++) & 0xFF;
     if (hasTimeStamp) {
-        timestamp = (ba.at(i++)) << 8;
-        timestamp |= (ba.at(i));
+        timestamp = (ba.at(i++) & 0xFF) << 8;
+        timestamp |= (ba.at(i) & 0xFF);
     }
 
 	return true;
