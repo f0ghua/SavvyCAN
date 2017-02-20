@@ -309,6 +309,7 @@ void SerialWorker::sendFrame(const CANFrame *frame, int bus = 0)
             buffer.append(0xFF);
         }
     }
+    buffer.append(0x10); // add complete code
     buffer.append(QByteArray::fromRawData(g_frameEndStr, sizeof(g_frameEndStr)));
 
     //qDebug() << "writing " << buffer.length() << " bytes to serial port";
