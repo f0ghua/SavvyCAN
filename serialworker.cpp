@@ -62,6 +62,12 @@ void SerialWorker::readSettings()
 
 #ifdef VENDOR_SAPA
 	doValidation=false;
+
+    if (settings.value("Main/CompleteCode", true).toBool())
+    {
+        appendCompleteCode = true;
+    }
+    else appendCompleteCode = false;	
 #endif
 }
 
@@ -309,7 +315,9 @@ void SerialWorker::sendFrame(const CANFrame *frame, int bus = 0)
             buffer.append(0xFF);
         }
     }
-    buffer.append(0x10); // add complete code
+
+    if (appendCompleteCode)
+    	buffer.append(0x10); // add complete code
     buffer.append(QByteArray::fromRawData(g_frameEndStr, sizeof(g_frameEndStr)));
 
     //qDebug() << "writing " << buffer.length() << " bytes to serial port";
@@ -386,6 +394,13 @@ void SerialWorker::updateBaudRates(int Speed1, int Speed2)
     if (!serial->isOpen()) return;
     serial->write(buffer);
 }
+
+#ifdef VENDOR_SAPA
+void SerialWorker::updateCanSettings(bool completeCode)
+{
+	appendCompleteCode = completeCode;
+}
+#endif
 
 #ifndef VENDOR_SAPA
 void SerialWorker::procRXChar(unsigned char c)

@@ -22,7 +22,8 @@ ConnectionWindow::ConnectionWindow(QWidget *parent) :
     currentSpeed2 = -1;    
 
     ui->ckSingleWire->setChecked(settings->value("Main/SingleWireMode", false).toBool());
-
+	ui->ckCompleteCode->setChecked(settings->value("Main/CompleteCode", false).toBool());
+	
     ui->cbSpeed0->addItem(tr("<Default>"));
     ui->cbSpeed0->addItem(tr("Disabled"));
     ui->cbSpeed0->addItem(tr("125000"));
@@ -106,6 +107,9 @@ void ConnectionWindow::handleOKButton()
     settings->setValue("Main/DefaultConnectionPort", currentPortName);
     settings->setValue("Main/DefaultConnectionType", connType);
     settings->setValue("Main/SingleWireMode", ui->ckSingleWire->isChecked());
+    if (settings->value("Main/CompleteCode", false).toBool() != ui->ckCompleteCode->isChecked())
+    	emit updateCanSettings(ui->ckCompleteCode->isChecked());
+    settings->setValue("Main/CompleteCode", ui->ckCompleteCode->isChecked());
 
     emit updateConnectionSettings(conn, getPortName(), getSpeed0(), getSpeed1());
 
@@ -245,3 +249,11 @@ bool ConnectionWindow::getCAN1SWMode()
     if (ui->ckSingleWire->checkState() == Qt::Checked) return true;
     return false;
 }
+
+bool ConnectionWindow::getComleteCodeState()
+{
+    if (ui->ckCompleteCode->checkState() == Qt::Checked) return true;
+    return false;
+}
+
+

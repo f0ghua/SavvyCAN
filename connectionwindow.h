@@ -33,10 +33,12 @@ public:
     QString getPortName(); //name of port to connect to
     ConnectionType::ConnectionType getConnectionType();
     bool getCAN1SWMode();
+	bool getComleteCodeState();
 
 signals:
     void updateConnectionSettings(QString connectionType, QString port, int speed0, int speed1);
-
+	void updateCanSettings(bool completeCode);
+	
 public slots:
     void setSpeeds(int speed0, int speed1);
     void setCAN1SWMode(bool mode);

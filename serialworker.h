@@ -60,6 +60,9 @@ public slots:
     void sendFrame(const CANFrame *, int);
     void sendFrameBatch(const QList<CANFrame> *);
     void updateBaudRates(int, int);
+#ifdef VENDOR_SAPA
+	void updateCanSettings(bool completeCode);
+#endif
     void stopFrameCapture();
     void startFrameCapture(); //only need to call this if previously stopped. Otherwise it's the default
 
@@ -69,6 +72,9 @@ private:
     bool connected;
     bool capturing;
     bool doValidation;
+#ifdef VENDOR_SAPA
+	bool appendCompleteCode;
+#endif
     bool gotValidated;
     bool isAutoRestart;
     bool continuousTimeSync;

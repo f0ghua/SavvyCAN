@@ -6,15 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>335</width>
-    <height>235</height>
+    <width>352</width>
+    <height>284</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Connection Settings</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
+  <layout class="QGridLayout" name="gridLayout_2">
+   <item row="0" column="0">
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>Connection Type</string>
@@ -56,7 +56,7 @@
      </layout>
     </widget>
    </item>
-   <item>
+   <item row="1" column="0">
     <widget class="QLabel" name="label">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
@@ -69,10 +69,10 @@
      </property>
     </widget>
    </item>
-   <item>
+   <item row="2" column="0">
     <widget class="QComboBox" name="cbPort"/>
    </item>
-   <item>
+   <item row="3" column="0">
     <layout class="QGridLayout" name="gridLayout">
      <item row="0" column="0">
       <widget class="QLabel" name="label_2">
@@ -96,14 +96,21 @@
      </item>
     </layout>
    </item>
-   <item>
+   <item row="4" column="0">
     <widget class="QCheckBox" name="ckSingleWire">
      <property name="text">
       <string>Set CAN1 to Single Wire Mode</string>
      </property>
     </widget>
    </item>
-   <item>
+   <item row="5" column="0">
+    <widget class="QCheckBox" name="ckCompleteCode">
+     <property name="text">
+      <string>Append CompleteCode for No Device Exist</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
     <widget class="QPushButton" name="btnOK">
      <property name="text">
       <string>Update Settings</string>

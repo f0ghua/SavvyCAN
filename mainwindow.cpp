@@ -187,6 +187,9 @@ MainWindow::MainWindow(QWidget *parent) :
     //Automatically create the connection window so it can be updated even if we never opened it.
     connectionWindow = new ConnectionWindow();
     connect(connectionWindow, SIGNAL(updateConnectionSettings(QString,QString,int,int)), this, SLOT(updateConnectionSettings(QString,QString,int,int)));
+#ifdef VENDOR_SAPA
+	connect(connectionWindow, SIGNAL(updateCanSettings(bool)), worker, SLOT(updateCanSettings(bool)));
+#endif
 
 #ifdef VENDOR_SAPA
 	this->setWindowTitle("SCSapa V" + QString::number(VERSION));
