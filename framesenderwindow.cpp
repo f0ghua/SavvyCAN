@@ -793,7 +793,11 @@ void FrameSenderWindow::processCellChange(int line, int col)
         case 1: //Bus designation
             tempVal = Utility::ParseStringToNum(ui->tableSender->item(line, 1)->text());
             if (tempVal < 0) tempVal = 0;
+#ifdef VENDOR_SAPA 
+            if (tempVal > 2) tempVal = 1;
+#else
             if (tempVal > 1) tempVal = 1;
+#endif
             sendingData[line].bus = tempVal;
             qDebug() << "Setting bus to " << tempVal;
             break;

@@ -268,6 +268,24 @@ void SerialWorker::procRXChar(unsigned char c)
     }
 }
 
+static quint8 lin_calculate_checksum(quint8 *pdata, quint8 len)
+{
+	quint16 sum = 0, i = 0;
+	quint8 checksum = 0;
+	quint16 tmp1 = 0 , tmp2 = 0;
+
+	for(i = 0; i < len; i++){
+		sum += pdata[i];
+		tmp1 = sum >> 8;
+		tmp2 = sum & 0xFF;
+		sum = tmp1 + tmp2;
+
+	}
+
+	checksum = 0xFF - sum;
+	return checksum;
+}
+
 void SerialWorker::sendFrame(const CANFrame *frame, int bus = 0)
 {
     QByteArray buffer;
@@ -290,32 +308,49 @@ void SerialWorker::sendFrame(const CANFrame *frame, int bus = 0)
     ID = frame->ID;
     if (frame->extended) ID |= 1 << 31;
 
-    char protocol = (bus & 1)?PROTOCOL_ID_CAN2:PROTOCOL_ID_CAN1;
-    /**
-     * bit 1: 1 = Tx
-     * bit 0: 0 = No timestamp
-     * In order to debug the own App, we alwasy set dir to Rx
-     */
-    buffer[0] = protocol; //+ (1<<1);
-	buffer[1] = 0;
-    if (frame->extended) SET_BIT(buffer[1], 7);
-    if (!frame->extended) {
-        buffer[1] = ((unsigned char)buffer.at(1))|((ID >> 8) & 0x07);
-        buffer.append((unsigned char)(ID & 0xFF));
-    } else {
-        buffer[1] = ((char)buffer[1])|((ID >> 24) & 0x1F);
-        buffer.append((unsigned char)(ID >> 16));
-        buffer.append((unsigned char)(ID >> 8));
-        buffer.append((unsigned char)(ID & 0xFF));
-    }
-
-    for (c = 0; c < frame->len; c++) {
-        buffer.append(frame->data[c]);
-        if ((quint8)frame->data[c] == 0xFF) {
-            buffer.append(0xFF);
+    if (bus < 2) { // CAN bus
+        char protocol = (bus & 1)?PROTOCOL_ID_CAN2:PROTOCOL_ID_CAN1;
+        /**
+         * bit 1: 1 = Tx
+         * bit 0: 0 = No timestamp
+         * In order to debug the own App, we alwasy set dir to Rx
+         */
+        buffer[0] = protocol; //+ (1<<1);
+        buffer[1] = 0;
+        if (frame->extended) SET_BIT(buffer[1], 7);
+        if (!frame->extended) {
+            buffer[1] = ((unsigned char)buffer.at(1))|((ID >> 8) & 0x07);
+            buffer.append((unsigned char)(ID & 0xFF));
+        } else {
+            buffer[1] = ((char)buffer[1])|((ID >> 24) & 0x1F);
+            buffer.append((unsigned char)(ID >> 16));
+            buffer.append((unsigned char)(ID >> 8));
+            buffer.append((unsigned char)(ID & 0xFF));
         }
-    }
 
+        for (c = 0; c < frame->len; c++) {
+            buffer.append(frame->data[c]);
+            if ((quint8)frame->data[c] == 0xFF) {
+                buffer.append(0xFF);
+            }
+        }
+    } else { // LIN bus
+        char protocol = PROTOCOL_ID_LIN1;
+        buffer[0] = protocol;
+        buffer[1] = ID;
+        
+        for (c = 0; c < frame->len; c++) {
+            buffer.append(frame->data[c]);
+            if ((quint8)frame->data[c] == 0xFF) {
+                buffer.append(0xFF);
+            }
+        }      
+
+        const char *data = buffer.constData() + 2;
+        quint8 cksum = lin_calculate_checksum((quint8 *)data, buffer.count()-2);
+        buffer.append(cksum);
+    }
+    
     if (appendCompleteCode)
     	buffer.append(0x10); // add complete code
     buffer.append(QByteArray::fromRawData(g_frameEndStr, sizeof(g_frameEndStr)));

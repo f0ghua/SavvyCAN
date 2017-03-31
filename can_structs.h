@@ -14,6 +14,7 @@
 
 #define PROTOCOL_ID_CAN1           0x50
 #define PROTOCOL_ID_CAN2           0x58
+#define PROTOCOL_ID_LIN1           0xB8
 
 #define IS_BIT_SET(data, bit)  (((data)>>(bit))&0x1)
 #define SET_BIT(data, bit) (data) = (data)|(1<<(bit))
