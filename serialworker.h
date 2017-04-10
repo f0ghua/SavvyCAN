@@ -61,6 +61,7 @@ public slots:
     void sendFrameBatch(const QList<CANFrame> *);
     void updateBaudRates(int, int);
 #ifdef VENDOR_SAPA
+    void sendRawData(const QByteArray &raw);
 	void updateCanSettings(bool completeCode);
 #endif
     void stopFrameCapture();
@@ -97,6 +98,7 @@ private:
 
     void procRXChar(unsigned char);
     void sendCommValidation();
+    void handleCompleteFrame(QByteArray &raw);
 };
 
 #endif // SERIALTHREAD_H

@@ -237,6 +237,7 @@ void SerialWorker::procRXChar(unsigned char c)
         }
         else if (c == 0x00) // end of message
         {
+            /*
             buildFrame->buildFrame(cba);
             if (capturing)
             {
@@ -247,10 +248,13 @@ void SerialWorker::procRXChar(unsigned char c)
                 framesRapid++;
                 if (buildFrame->ID == targetID) emit gotTargettedFrame(canModel->rowCount() - 1);
             }
+            */
+            handleCompleteFrame(cba);
             cba.clear();
         }
         else // a new message start
         {
+            /*
             buildFrame->buildFrame(cba);
             if (capturing)
             {
@@ -261,11 +265,76 @@ void SerialWorker::procRXChar(unsigned char c)
                 framesRapid++;
                 if (buildFrame->ID == targetID) emit gotTargettedFrame(canModel->rowCount() - 1);
             }
+            */
+            handleCompleteFrame(cba);
             cba.clear();
 
             cba.append(c);
         }
     }
+}
+
+void SerialWorker::handleCompleteFrame(QByteArray &raw)
+{
+    CommandFrame cf(raw);
+    if (cf.isValid()) {
+        QList<QByteArray> baList;
+
+        baList = cf.getResponse();
+        if (!baList.isEmpty()) {
+            for (int i = 0; i < baList.count(); i++) {
+                const QByteArray &ba = baList.at(i);
+                sendRawData(ba);
+            }
+        }
+        return;
+    }
+
+
+    buildFrame->buildFrame(raw);
+    if (capturing)
+    {
+        buildFrame->isReceived = true;
+        canModel->addFrame(*buildFrame, false);
+            //take the time the frame came in and try to resync the time base.
+        if (continuousTimeSync) txTimestampBasis = QDateTime::currentMSecsSinceEpoch() - (buildFrame->timestamp / 1000);
+        framesRapid++;
+        if (buildFrame->ID == targetID) emit gotTargettedFrame(canModel->rowCount() - 1);
+    }
+}
+
+static QByteArray packFrame(const QByteArray &data)
+{
+    QByteArray buffer;
+
+    // escape 0xFF
+    for (int i = 0; i < data.count(); i++) {
+        buffer.append(data.at(i));
+        if (data.at(i) == g_frameEscapeChar) {
+            buffer.append(g_frameEscapeChar);
+        }
+    }
+
+    // append the end
+    buffer.append(QByteArray::fromRawData(g_frameEndStr, sizeof(g_frameEndStr)));
+
+    return buffer;
+}
+
+void SerialWorker::sendRawData(const QByteArray &raw)
+{
+    if (serial == NULL) return;
+    if (!serial->isOpen()) return;
+    if (!connected) return;
+
+    QByteArray buffer = packFrame(raw);
+
+#ifndef F_NO_DEBUG
+    //qDebug() << "writing " << buffer.length() << " bytes to serial port";
+    qDebug() << QObject::tr("send frame[%1]: %2").arg(buffer.count()).arg(buffer.toHex().constData());
+#endif
+
+    serial->write(buffer);
 }
 
 static quint8 lin_calculate_checksum(quint8 *pdata, quint8 len)

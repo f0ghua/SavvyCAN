@@ -15,10 +15,35 @@
 #define PROTOCOL_ID_CAN1           0x50
 #define PROTOCOL_ID_CAN2           0x58
 #define PROTOCOL_ID_LIN1           0xB8
+#define PROTOCOL_ID_CONFIGURATION  0x08
 
 #define IS_BIT_SET(data, bit)  (((data)>>(bit))&0x1)
 #define SET_BIT(data, bit) (data) = (data)|(1<<(bit))
 #define CLEAR_BIT(data, bit) (data) = (data)&(~(1<<(bit)))
+
+class CommandFrame
+{
+public:
+
+    CommandFrame(QByteArray &ba);
+    bool isValid() { return isValidFrame; }
+    QList<QByteArray> getResponse() { return responseDataList; }
+
+    quint8 protocol;
+    quint8 bus;
+    quint8 action;
+    bool isProtocolCommand;
+    bool isValidFrame;
+    QByteArray data;
+    uint64_t timestamp;
+
+    QList<QByteArray> responseDataList;
+    static QList<QByteArray> sstDataList;
+
+private:
+    void processLinCommands();
+    void processCommandData();
+};
 #endif
 
 class CANFrame
