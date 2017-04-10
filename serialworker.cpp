@@ -290,7 +290,6 @@ void SerialWorker::handleCompleteFrame(QByteArray &raw)
         return;
     }
 
-
     buildFrame->buildFrame(raw);
     if (capturing)
     {
