@@ -59,11 +59,16 @@ void CommandFrame::processLinCommands()
         {
             quint8 idx = data.at(0);
             if (idx == 0xFF) {
+                QByteArray ba;
                 for (int i = 0; i < sstDataList.count(); i++) {
-                    QByteArray ba = QByteArrayLiteral("\xBC\x13\x00\x01");
+                    ba.clear();
+                    ba = QByteArrayLiteral("\xBC\x13\x00\x01");
                     ba.append(sstDataList.at(i));
                     responseDataList.append(ba);
                 }
+                ba.clear();
+                ba = QByteArrayLiteral("\xBC\x13\xFF");
+                responseDataList.append(ba);
             }
 
             break;
