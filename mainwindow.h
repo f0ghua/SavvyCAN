@@ -140,7 +140,7 @@ private:
     DiscreteStateWindow *discreteStateWindow;
     FirmwareUploaderWindow *firmwareUploaderWindow;
     ConnectionWindow *connectionWindow;
-#ifndef VENDOR_SAPA
+#ifdef SCRIPT_SUPPORT
     ScriptingWindow *scriptingWindow;
 #endif
     RangeStateWindow *rangeWindow;

@@ -9,6 +9,8 @@ QT       += core gui
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets serialport printsupport qml
 
 DEFINES += VENDOR_SAPA
+DEFINES += SCRIPT_SUPPORT
+
 CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
 
 CONFIG += c++11 qscintilla2
@@ -118,7 +120,14 @@ RESOURCES += \
 
 if (contains(DEFINES, VENDOR_SAPA)) {
     TARGET = SCSapa
-} else {
+}
+
+if (contains(DEFINES, SCRIPT_SUPPORT)) {
     SOURCES += scriptingwindow.cpp
     HEADERS += scriptingwindow.h
+
+    INCLUDEPATH += C:\msys64\mingw32\QScintilla_gpl-2.10.3\include
+    LIBS+= -LC:\msys64\mingw32\QScintilla_gpl-2.10.3\lib -lqscintilla2_qt5d
 }
+
+

@@ -97,7 +97,7 @@ MainWindow::MainWindow(QWidget *parent) :
     firmwareUploaderWindow = NULL;
     discreteStateWindow = NULL;
     connectionWindow = NULL;
-#ifndef VENDOR_SAPA
+#ifdef SCRIPT_SUPPORT
     scriptingWindow = NULL;
 #endif
     rangeWindow = NULL;
@@ -273,7 +273,7 @@ MainWindow::~MainWindow()
         delete connectionWindow;
     }
 	
-#ifndef VENDOR_SAPA
+#ifdef SCRIPT_SUPPORT
     if (scriptingWindow)
     {
         scriptingWindow->close();
@@ -331,7 +331,7 @@ void MainWindow::exitApp()
     if (connectionWindow) connectionWindow->close();
     if (settingsDialog) settingsDialog->close();
     if (discreteStateWindow) discreteStateWindow->close();
-#ifndef VENDOR_SAPA
+#ifdef SCRIPT_SUPPORT
     if (scriptingWindow) scriptingWindow->close();
 #endif
     if (rangeWindow) rangeWindow->close();
@@ -1031,7 +1031,7 @@ void MainWindow::showUDSScanWindow()
 
 void MainWindow::showScriptingWindow()
 {
-#ifndef VENDOR_SAPA
+#ifdef SCRIPT_SUPPORT
     if (!scriptingWindow)
     {
         scriptingWindow = new ScriptingWindow(model->getListReference());
