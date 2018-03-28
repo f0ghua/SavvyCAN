@@ -11,6 +11,7 @@ CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
 CONFIG += c++11
 
 DEFINES += QCUSTOMPLOT_USE_OPENGL
+DEFINES += VENDOR_SAPA
 
 TARGET = SavvyCAN
 TEMPLATE = app
@@ -153,4 +154,13 @@ RESOURCES += \
 
 win32 {
    LIBS += opengl32.lib
+}
+
+if (contains(DEFINES, VENDOR_SAPA)) {
+    TARGET = SCSapa
+
+    SOURCES += connections/wizbuserial.cpp
+    HEADERS += connections/wizbuserial.h
+
+    LIBS -= opengl32.lib
 }
