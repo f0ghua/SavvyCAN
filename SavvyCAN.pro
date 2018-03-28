@@ -153,7 +153,7 @@ RESOURCES += \
     images.qrc
 
 win32 {
-   LIBS += opengl32.lib
+#   LIBS += opengl32.lib
 }
 
 if (contains(DEFINES, VENDOR_SAPA)) {
@@ -161,6 +161,9 @@ if (contains(DEFINES, VENDOR_SAPA)) {
 
     SOURCES += connections/wizbuserial.cpp
     HEADERS += connections/wizbuserial.h
+
+    SOURCES += ccrashstack.cpp
+    HEADERS += ccrashstack.h
 
     LIBS -= opengl32.lib
 }

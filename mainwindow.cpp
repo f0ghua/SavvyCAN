@@ -8,6 +8,10 @@
 #include "connections/connectionwindow.h"
 #include "utility.h"
 
+#ifdef VENDOR_SAPA
+#include <QDesktopWidget>
+#endif
+
 /*
 Some notes on things I'd like to put into the program but haven't put on github (yet)
 
@@ -170,6 +174,17 @@ MainWindow::MainWindow(QWidget *parent) :
     //Automatically create the connection window so it can be updated even if we never opened it.
     connectionWindow = new ConnectionWindow();
     connect(this, SIGNAL(suspendCapturing(bool)), connectionWindow, SLOT(setSuspendAll(bool)));
+
+#ifdef VENDOR_SAPA
+	this->setWindowTitle("SCSapa V" + QString::number(VERSION));
+
+	QDesktopWidget* desktop = QApplication::desktop(); 
+	//int w = desktop->availableGeometry().width() * 3 / 4;	
+	//int h = w * 600 / 850;
+	int h = desktop->availableGeometry().height() * 3 / 4;
+    int w = h * 850 / 600; 
+	resize(w, h);
+#endif
 
 }
 
