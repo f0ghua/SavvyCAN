@@ -264,7 +264,7 @@ bool WizBuSerial::piSendFrame(const CANFrame& frame)
 
 
 WizBuSerial::WizBuSerial(QString portName) :
-    CANConnection(portName, CANCon::GVRET_SERIAL, 3, 4000, true),
+    CANConnection(portName, CANCon::GVRET_SERIAL, 1, 4000, true),
     mTimer(this) /*NB: set this as parent of timer to manage it from working thread */
 {
     qDebug() << "WizBuSerial()";
@@ -300,6 +300,18 @@ void WizBuSerial::piStarted()
     mTimer.setInterval(250); //tick four times per second
     mTimer.setSingleShot(false); //keep ticking
     mTimer.start();
+
+	can0Baud = 57600;
+	mBusData[0].mBus.setSpeed(can0Baud);
+	mBusData[0].mBus.setEnabled(can0Enabled);
+	mBusData[0].mConfigured = true;
+	mBusData[0].mBus.active = true;
+	/*
+	can1Baud = 57600;
+    mBusData[1].mBus.setSpeed(can1Baud);
+    mBusData[1].mBus.setEnabled(can1Enabled);
+    mBusData[1].mConfigured = true;	
+    */
 }
 
 
