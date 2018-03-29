@@ -44,6 +44,12 @@ public slots:
     void setFilter(QJSValue id, QJSValue mask, QJSValue bus);
     void clearFilters();
     void sendISOTP(QJSValue bus, QJSValue id, QJSValue length, QJSValue data);
+#ifdef VENDOR_SAPA	
+	void setFCOn();
+	void setFlowCtrl(QJSValue state);
+	void setProcessAll(QJSValue state);
+	void send15765(QJSValue bus, QJSValue id, QJSValue length, QJSValue data);
+#endif
     void setRxCallback(QJSValue cb);
 private slots:
     void newISOMessage(ISOTP_MESSAGE msg);

@@ -10,6 +10,21 @@ ScriptContainer::ScriptContainer()
     isoHelper = new ISOTPScriptHelper(&scriptEngine);
     udsHelper = new UDSScriptHelper(&scriptEngine);
     connect(&timer, SIGNAL(timeout()), this, SLOT(tick()));
+
+#ifdef VENDOR_SAPA
+
+	//Add a bunch of helper objects into javascript that the scripts
+	//can use to interact with the CAN buses
+	QJSValue hostObj = scriptEngine.newQObject(this);
+	scriptEngine.globalObject().setProperty("host", hostObj);
+	QJSValue canObj = scriptEngine.newQObject(canHelper);
+	scriptEngine.globalObject().setProperty("can", canObj);
+	QJSValue isoObj = scriptEngine.newQObject(isoHelper);
+	scriptEngine.globalObject().setProperty("isotp", isoObj);
+	QJSValue udsObj = scriptEngine.newQObject(udsHelper);
+	scriptEngine.globalObject().setProperty("uds", udsObj);
+
+#endif
 }
 
 void ScriptContainer::compileScript()
@@ -33,6 +48,7 @@ void ScriptContainer::compileScript()
     }
     else
     {
+#ifndef VENDOR_SAPA    
         compiledScript = result;
 
         //Add a bunch of helper objects into javascript that the scripts
@@ -45,6 +61,7 @@ void ScriptContainer::compileScript()
         scriptEngine.globalObject().setProperty("isotp", isoObj);
         QJSValue udsObj = scriptEngine.newQObject(udsHelper);
         scriptEngine.globalObject().setProperty("uds", udsObj);
+#endif
 
         //Find out which callbacks the script has created.
         setupFunction = scriptEngine.globalObject().property("setup");
@@ -65,6 +82,7 @@ void ScriptContainer::compileScript()
             }
         }
         if (tickFunction.isCallable()) qDebug() << "tick exists";
+		
     }
 }
 
@@ -275,7 +293,9 @@ void ISOTPScriptHelper::sendISOTP(QJSValue bus, QJSValue id, QJSValue length, QJ
     msg.len = length.toUInt();
 
     if (!data.isArray()) qDebug() << "data isn't an array";
-
+#ifdef VENDOR_SAPA
+    msg.data.resize(msg.len);
+#endif
     for (int i = 0; i < msg.len; i++)
     {
         msg.data[i] = static_cast<uint8_t>(data.property(i).toInt());
@@ -289,6 +309,50 @@ void ISOTPScriptHelper::sendISOTP(QJSValue bus, QJSValue id, QJSValue length, QJ
     handler->sendISOTPFrame(msg.bus, msg.ID, msg.data);
 }
 
+#ifdef VENDOR_SAPA
+void ISOTPScriptHelper::setFCOn()
+{
+    handler->setFlowCtrl(true);
+	handler->setProcessAll(true);
+}
+
+void ISOTPScriptHelper::setFlowCtrl(QJSValue state)
+{
+	bool en = state.toBool();
+    handler->setFlowCtrl(en);
+}
+
+void ISOTPScriptHelper::setProcessAll(QJSValue state)
+{
+	bool en = state.toBool();
+	handler->setProcessAll(en);
+}
+
+void ISOTPScriptHelper::send15765(QJSValue bus, QJSValue id, QJSValue length, QJSValue data)
+{
+    ISOTP_MESSAGE msg;
+    msg.extended = false;
+    msg.ID = id.toInt();
+    msg.len = length.toUInt();
+
+	QString dataStr = data.toString();
+    QByteArray ba = QByteArray::fromHex(dataStr.toLatin1());
+
+    msg.data.reserve(msg.len);
+    for (int i = 0; i < msg.len; i++)
+    {
+        msg.data.append(ba.at(i));
+    }
+
+    msg.bus = bus.toInt();
+
+    if (msg.ID > 0x7FF) msg.extended = true;
+
+    qDebug() << "sending isotp message from script";
+    handler->sendISOTPFrame(msg.bus, msg.ID, msg.data);
+}
+#endif
+
 void ISOTPScriptHelper::setRxCallback(QJSValue cb)
 {
     gotFrameFunction = cb;
@@ -298,7 +362,7 @@ void ISOTPScriptHelper::newISOMessage(ISOTP_MESSAGE msg)
 {
     qDebug() << "isotpScriptHelper got a ISOTP message";
     if (!gotFrameFunction.isCallable()) return; //nothing to do if we can't even call the function
-    //qDebug() << "Got frame in script interface";
+    qDebug() << "Got frame in script interface";
 
     QJSValueList args;
     args << msg.bus << msg.ID << msg.len;
