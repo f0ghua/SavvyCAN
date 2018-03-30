@@ -20,14 +20,14 @@ bool JSHelper::arrayEqual(QJSValue array1, QJSValue array2, QJSValue length)
 
 	uint32_t len = length.toUInt();
 
-	for (int i; i < len; i++) {
-
-		if (static_cast<uint8_t>(array1.property(i).toInt()) != 
-			static_cast<uint8_t>(array2.property(i).toInt())) {
+    for (int i = 0; i < len; i++) {
+        uint8_t v1 = static_cast<uint8_t>(array1.property(i).toInt());
+        uint8_t v2 = static_cast<uint8_t>(array2.property(i).toInt());
+        if (v1 != v2 ){
 			return false;
 		}
 	}
-	
+
 	return true;
 }
 #endif
