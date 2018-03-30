@@ -62,6 +62,9 @@ void ISOTP_HANDLER::sendISOTPFrame(int bus, int ID, QVector<unsigned char> data)
     {
         frame.bus = bus;
         frame.extended = false;
+#ifdef VENDOR_SAPA		
+		if (ID > 0x7FF) frame.extended = true;
+#endif		
         frame.ID = ID;
         frame.len = 8;
         for (int b = 0; b < 8; b++) frame.data[b] = 0x00;
@@ -74,6 +77,9 @@ void ISOTP_HANDLER::sendISOTPFrame(int bus, int ID, QVector<unsigned char> data)
         frame.bus = bus;
         frame.ID = ID;
         frame.extended = false;
+#ifdef VENDOR_SAPA		
+		if (ID > 0x7FF) frame.extended = true;
+#endif		
         frame.len = 8;
         for (int b = 0; b < 8; b++) frame.data[b] = 0x00;
         frame.data[0] = 0x10 + (data.length() / 256);

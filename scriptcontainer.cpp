@@ -325,7 +325,7 @@ void ISOTPScriptHelper::sendISOTP(QJSValue bus, QJSValue id, QJSValue length, QJ
 {
     ISOTP_MESSAGE msg;
     msg.extended = false;
-    msg.ID = id.toInt();
+    msg.ID = id.toUInt();
     msg.len = length.toUInt();
 
     if (!data.isArray()) qDebug() << "data isn't an array";
