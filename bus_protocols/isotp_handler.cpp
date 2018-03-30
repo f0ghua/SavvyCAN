@@ -128,6 +128,9 @@ void ISOTP_HANDLER::rapidFrames(const CANConnection* conn, const QVector<CANFram
 
     foreach(const CANFrame& thisFrame, pFrames)
     {
+#ifdef VENDOR_SAPA
+		if (!thisFrame.isReceived) continue;
+#endif
         //only process frames that we've marked are ISOTP frames
         //unless processAll is true
         if (processAll) processFrame(thisFrame);

@@ -145,7 +145,7 @@ void WizBuSerial::procRXChar(unsigned char c)
         else if (c == 0x00) // end of message
         {
 			buildCANFrame(&buildFrame, cba);
-			if (!isCapSuspended())
+			if (!isCapSuspended() && buildFrame.isReceived)
 			{
 				/* get frame from queue */
 				CANFrame* frame_p = getQueue().get();
@@ -168,7 +168,7 @@ void WizBuSerial::procRXChar(unsigned char c)
         else // a new message start
         {
 			buildCANFrame(&buildFrame, cba);
-			if (!isCapSuspended())
+			if (!isCapSuspended() && buildFrame.isReceived)
 			{
 				/* get frame from queue */
 				CANFrame* frame_p = getQueue().get();

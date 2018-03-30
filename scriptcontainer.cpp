@@ -4,6 +4,34 @@
 #include "scriptcontainer.h"
 #include "connections/canconmanager.h"
 
+#ifdef VENDOR_SAPA
+#include "jshelper.h"
+
+void JSHelper::log(QString msg) 
+{
+	qDebug() << "jsHelper: "<< msg;
+	emit m_scriptContainer->sendLog(msg);
+}
+
+bool JSHelper::arrayEqual(QJSValue array1, QJSValue array2, QJSValue length)
+{		
+	if ((!array1.isArray())||(!array2.isArray())) 
+		qDebug() << "data isn't an array";
+
+	uint32_t len = length.toUInt();
+
+	for (int i; i < len; i++) {
+
+		if (static_cast<uint8_t>(array1.property(i).toInt()) != 
+			static_cast<uint8_t>(array2.property(i).toInt())) {
+			return false;
+		}
+	}
+	
+	return true;
+}
+#endif
+
 ScriptContainer::ScriptContainer()
 {
     canHelper = new CANScriptHelper(&scriptEngine);
@@ -24,6 +52,10 @@ ScriptContainer::ScriptContainer()
 	QJSValue udsObj = scriptEngine.newQObject(udsHelper);
 	scriptEngine.globalObject().setProperty("uds", udsObj);
 
+	JSHelper *jsHelper = new JSHelper(this);
+	QJSValue jshObj = scriptEngine.newQObject(jsHelper);
+	scriptEngine.globalObject().setProperty("jsh", jshObj);
+
 #endif
 }
 
@@ -31,7 +63,11 @@ void ScriptContainer::compileScript()
 {
     QJSValue result = scriptEngine.evaluate(scriptText, fileName);
 
-    emit sendLog("Compiling script...");
+#ifndef VENDOR_SAPA
+	emit sendLog("Compiling script...");
+#else
+    emit sendLog("Evaluate script done.");
+#endif
 
     canHelper->clearFilters();
     isoHelper->clearFilters();
@@ -336,7 +372,7 @@ void ISOTPScriptHelper::send15765(QJSValue bus, QJSValue id, QJSValue length, QJ
     msg.len = length.toUInt();
 
 	QString dataStr = data.toString();
-    QByteArray ba = QByteArray::fromHex(dataStr.toLatin1());
+    QByteArray ba = QByteArray::fromHex(dataStr.toLatin1());    
 
     msg.data.reserve(msg.len);
     for (int i = 0; i < msg.len; i++)

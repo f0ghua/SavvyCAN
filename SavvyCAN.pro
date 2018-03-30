@@ -161,7 +161,7 @@ if (contains(DEFINES, VENDOR_SAPA)) {
 
     SOURCES += connections/wizbuserial.cpp
     HEADERS += connections/wizbuserial.h
-
+    HEADERS += jshelper.h
     SOURCES += ccrashstack.cpp
     HEADERS += ccrashstack.h
 
