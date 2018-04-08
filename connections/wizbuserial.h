@@ -70,7 +70,7 @@ protected:
     int32_t timeBasis;
     uint64_t lastSystemTimeBasis;
     uint64_t timeAtGVRETSync;
-	bool appendCompleteCode = false;
+    bool appendCompleteCode = false;
 };
 
 #endif // GVRETSERIAL_H

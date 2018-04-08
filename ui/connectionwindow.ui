@@ -216,6 +216,13 @@
        </property>
       </widget>
      </item>
+     <item alignment="Qt::AlignHCenter">
+      <widget class="QCheckBox" name="ckCompleteCode">
+       <property name="text">
+        <string>Enable CompleteCode Appending</string>
+       </property>
+      </widget>
+     </item>
      <item>
       <widget class="QLabel" name="label">
        <property name="text">

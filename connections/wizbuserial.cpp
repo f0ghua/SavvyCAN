@@ -105,7 +105,7 @@ bool WizBuSerial::buildCANFrame(CANFrame *frame, const QByteArray &ba)
     if ((frame->len < 0) || (frame->len > 8))
         return false;
 
-    for (int j = 0; j < frame->len; j++) {
+    for (quint32 j = 0; j < frame->len; j++) {
         frame->data[j] = (ba.at(i+j) & 0xFF);
     }
 
@@ -196,7 +196,7 @@ void WizBuSerial::procRXChar(unsigned char c)
 bool WizBuSerial::piSendFrame(const CANFrame& frame)
 {
     QByteArray buffer;
-    int c;
+    quint32 c;
     int ID;
 
     //qDebug() << "Sending out frame with id " << frame->ID;
@@ -255,7 +255,10 @@ bool WizBuSerial::piSendFrame(const CANFrame& frame)
     if (appendCompleteCode)
     	buffer.append(0x10); // add complete code
     buffer.append(QByteArray::fromRawData(g_frameEndStr, sizeof(g_frameEndStr)));
-
+#ifndef F_NO_DEBUG
+    //qDebug() << "writing " << buffer.length() << " bytes to serial port";
+    qDebug() << QObject::tr("send frame[%1]: %2").arg(buffer.count()).arg(buffer.toHex().constData());
+#endif
     debugOutput("writing " + QString::number(buffer.length()) + " bytes to serial port");
     serial->write(buffer);
 
@@ -278,6 +281,7 @@ WizBuSerial::WizBuSerial(QString portName) :
     timeBasis = 0;
     lastSystemTimeBasis = 0;
     timeAtGVRETSync = 0;
+    appendCompleteCode = false;
 
     readSettings();
 }
@@ -366,12 +370,13 @@ void WizBuSerial::readSettings()
     else doValidation = false;
 
 	doValidation=false;
-
+/*
     if (settings.value("Main/CompleteCode", true).toBool())
     {
         appendCompleteCode = true;
     }
     else appendCompleteCode = false;
+*/
 }
 
 
