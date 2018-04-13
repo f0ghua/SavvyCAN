@@ -51,7 +51,7 @@ void ISOTP_HANDLER::sendISOTPFrame(int bus, int ID, QVector<unsigned char> data)
 {
     CANFrame frame;
     int currByte = 0;
-    int index = 0;
+    int index = 1;
     if (bus < 0) return;
     if (bus >= CANConManager::getInstance()->getNumBuses()) return;
 
@@ -234,6 +234,10 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
             CANFrame outFrame;
             outFrame.bus = lastSenderBus;
             outFrame.extended = false;
+#ifdef VENDOR_SAPA		
+            if (lastSenderID > 0x7FF) outFrame.extended = true;
+#endif
+
             outFrame.ID = lastSenderID;
             outFrame.len = 8;
             for (int b = 0; b < 8; b++) outFrame.data[b] = 0x00;
