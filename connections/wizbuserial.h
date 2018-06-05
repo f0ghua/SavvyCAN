@@ -48,6 +48,7 @@ private:
     void sendCommValidation();
     void rebuildLocalTimeBasis();
 	bool buildCANFrame(CANFrame *frame, const QByteArray &ba);
+    bool handleValidateFrames(const QByteArray &cba);
 	
 protected:
     QTimer             mTimer;

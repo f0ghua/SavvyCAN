@@ -119,6 +119,33 @@ bool WizBuSerial::buildCANFrame(CANFrame *frame, const QByteArray &ba)
     return true;
 }
 
+bool WizBuSerial::handleValidateFrames(const QByteArray &cba)
+{
+    if ((cba.size() == 2) &&
+            ((quint8)cba.at(0) == 0x08) &&
+            ((quint8)cba.at(1) == 0x92)) {
+#ifndef F_NO_DEBUG
+        qDebug() << QObject::tr("get version request");
+#endif
+        QByteArray buffer = QByteArrayLiteral("\x08\x92\x49\x43\x49\x54\x53\x20\x53\x6F\x66\x74\x77\x61\x72\x65\x20\x56\x65\x72\x73\x69\x6F\x6E\x20\x4E\x75\x6D\x62\x65\x72\x3A\x20\x76\x31\x2E\x30\x36\x2E\x32\x37\x2E\x32\xFF\x00");
+        serial->write(buffer);
+        return true;
+    }
+
+    if ((cba.size() == 18) &&
+            ((quint8)cba.at(0) == 0x08) &&
+            ((quint8)cba.at(1) == 0xE0)) {
+#ifndef F_NO_DEBUG
+        qDebug() << QObject::tr("get publickey request");
+#endif
+        QByteArray buffer = QByteArrayLiteral("\x08\xE0\xFF\x00");
+        serial->write(buffer);
+        return true;
+    }
+
+    return false;
+}
+
 void WizBuSerial::procRXChar(unsigned char c)
 {
     static unsigned char ffFlag = 0;
@@ -145,14 +172,9 @@ void WizBuSerial::procRXChar(unsigned char c)
         else if (c == 0x00) // end of message
         {
             // check if a version request packet, is yes, response it
-            if ((cba.size() == 2) && ((quint8)cba.at(0) == 0x08) && ((quint8)cba.at(1) == 0x92)) {
-                qDebug() << QObject::tr("get version req");
-                QByteArray buffer = QByteArrayLiteral("\x08\x92\x49\x43\x49\x54\x53\x20\x53\x6F\x66\x74\x77\x61\x72\x65\x20\x56\x65\x72\x73\x69\x6F\x6E\x20\x4E\x75\x6D\x62\x65\x72\x3A\x20\x76\x31\x2E\x30\x36\x2E\x32\x37\x2E\x32\xFF\x00");
-                serial->write(buffer);
-            } else {
+            if (!handleValidateFrames(cba)) {
                 bool isValid = buildCANFrame(&buildFrame, cba);
-                if (isValid && (!isCapSuspended()) && buildFrame.isReceived)
-                {
+                if (isValid && (!isCapSuspended()) && buildFrame.isReceived) {
                     /* get frame from queue */
                     CANFrame* frame_p = getQueue().get();
                     if(frame_p) {
@@ -165,10 +187,9 @@ void WizBuSerial::procRXChar(unsigned char c)
                     }
                     else
                         qDebug() << "can't get a frame, ERROR";
-
+                }
                     //take the time the frame came in and try to resync the time base.
                     //if (continuousTimeSync) txTimestampBasis = QDateTime::currentMSecsSinceEpoch() - (buildFrame.timestamp / 1000);
-                }
             }
             cba.clear();
         }
