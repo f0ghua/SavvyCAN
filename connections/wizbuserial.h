@@ -21,6 +21,8 @@ class WizBuSerial : public CANConnection
 public:
     WizBuSerial(QString portName);
     virtual ~WizBuSerial();
+    bool rxCompleteCode() const {return m_rxHasCompleteCode;}
+    bool txCompleteCode() const {return m_txHasCompleteCode;}
 
 protected:
 
@@ -35,7 +37,8 @@ protected:
 
 public slots:
     void debugInput(QByteArray bytes);
-
+	void setCompleteCode(bool rx, bool enable);
+	
 private slots:
     void connectDevice();
     void connectionTimeout();
@@ -71,7 +74,8 @@ protected:
     int32_t timeBasis;
     uint64_t lastSystemTimeBasis;
     uint64_t timeAtGVRETSync;
-    bool appendCompleteCode = false;
+    bool m_txHasCompleteCode = false;
+	bool m_rxHasCompleteCode = true;
 };
 
 #endif // GVRETSERIAL_H

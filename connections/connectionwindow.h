@@ -35,6 +35,9 @@ signals:
     void updateBusSettings(CANBus *bus);
     void updatePortName(QString port);
     void sendDebugData(QByteArray bytes);
+#ifdef VENDOR_SAPA	
+	void setCompleteCode(bool rx, bool enable);
+#endif
 
 public slots:
     void setSpeed(int speed0);
@@ -58,6 +61,8 @@ private slots:
     void handleSendHex();
     void handleSendText();
     void connectionStatus(CANConStatus);
+    void on_ckRxCompleteCode_stateChanged(int arg1);
+    void on_ckTxCompleteCode_stateChanged(int arg1);
 
 private:
     Ui::ConnectionWindow *ui;

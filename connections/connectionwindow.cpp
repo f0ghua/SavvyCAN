@@ -7,8 +7,9 @@
 #include "connections/canconfactory.h"
 #include "connections/canconmanager.h"
 #include "canbus.h"
-
-
+#ifdef VENDOR_SAPA
+#include "wizbuserial.h"
+#endif
 
 ConnectionWindow::ConnectionWindow(QWidget *parent) :
     QDialog(parent),
@@ -435,8 +436,7 @@ bool ConnectionWindow::isSocketCanAvailable()
 #endif
     return false;
 }
-
-
+    
 CANConnection* ConnectionWindow::create(CANCon::type pTye, QString pPortName)
 {
     CANConnection* conn_p;
@@ -448,7 +448,16 @@ CANConnection* ConnectionWindow::create(CANCon::type pTye, QString pPortName)
         /* connect signal */
         connect(conn_p, SIGNAL(status(CANConStatus)),
                 this, SLOT(connectionStatus(CANConStatus)));
-
+#ifdef VENDOR_SAPA	
+        WizBuSerial *wconn_p = qobject_cast<WizBuSerial *>(conn_p);
+        if (wconn_p) {
+            qDebug() << QObject::tr("It's a wizbus connection, connect signals");
+            connect(this, &ConnectionWindow::setCompleteCode, 
+                wconn_p, &WizBuSerial::setCompleteCode);
+            ui->ckRxCompleteCode->setChecked(wconn_p->rxCompleteCode());
+            ui->ckTxCompleteCode->setChecked(wconn_p->txCompleteCode());
+        }
+#endif
         /*TODO add return value and checks */
         conn_p->start();
     }
@@ -479,6 +488,13 @@ void ConnectionWindow::loadConnections()
     if (connModel->rowCount() > 0) {
         ui->tableConnections->selectRow(0);
     }
+
+#ifdef VENDOR_SAPA
+    Qt::CheckState rxcc = static_cast<Qt::CheckState>(settings.value("icitsconn/rxCompleteCode").value<int>());
+    Qt::CheckState txcc = static_cast<Qt::CheckState>(settings.value("icitsconn/txCompleteCode").value<int>());
+    ui->ckRxCompleteCode->setCheckState(rxcc);
+    ui->ckTxCompleteCode->setCheckState(txcc);
+#endif
 }
 
 void ConnectionWindow::saveConnections()
@@ -498,4 +514,29 @@ void ConnectionWindow::saveConnections()
 
     settings.setValue("connections/portNames", QVariant::fromValue(portNames));
     settings.setValue("connections/types", QVariant::fromValue(devTypes));
+
+#ifdef VENDOR_SAPA
+    int rxcc = ui->ckRxCompleteCode->checkState();
+    int txcc = ui->ckTxCompleteCode->checkState();
+    settings.setValue("icitsconn/rxCompleteCode", QVariant::fromValue(rxcc));
+    settings.setValue("icitsconn/txCompleteCode", QVariant::fromValue(txcc));
+#endif
+}
+
+void ConnectionWindow::on_ckRxCompleteCode_stateChanged(int arg1)
+{
+    if (arg1 == Qt::Checked) {
+        emit setCompleteCode(true, true);
+    } else {
+        emit setCompleteCode(true, false);
+    }
+}
+
+void ConnectionWindow::on_ckTxCompleteCode_stateChanged(int arg1)
+{
+    if (arg1 == Qt::Checked) {
+        emit setCompleteCode(false, true);
+    } else {
+        emit setCompleteCode(false, false);
+    }
 }

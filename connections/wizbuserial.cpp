@@ -110,7 +110,9 @@ bool WizBuSerial::buildCANFrame(CANFrame *frame, const QByteArray &ba)
     }
 
     i += frame->len;
-    quint8 completeCode = ba.at(i++) & 0xFF;
+    if (m_rxHasCompleteCode) {
+        quint8 completeCode = ba.at(i++) & 0xFF;
+    }
     if (hasTimeStamp) {
         frame->timestamp = (ba.at(i++) & 0xFF) << 8;
         frame->timestamp |= (ba.at(i) & 0xFF);
@@ -280,7 +282,7 @@ bool WizBuSerial::piSendFrame(const CANFrame& frame)
         buffer.append(cksum);
     }
 
-    if (appendCompleteCode)
+    if (m_txHasCompleteCode)
     	buffer.append(0x10); // add complete code
     buffer.append(QByteArray::fromRawData(g_frameEndStr, sizeof(g_frameEndStr)));
 #ifndef F_NO_DEBUG
@@ -309,7 +311,6 @@ WizBuSerial::WizBuSerial(QString portName) :
     timeBasis = 0;
     lastSystemTimeBasis = 0;
     timeAtGVRETSync = 0;
-    appendCompleteCode = false;
 
     readSettings();
 }
@@ -386,6 +387,15 @@ void WizBuSerial::piSetBusSettings(int pBusIdx, CANBus bus)
 
 
 /****************************************************************/
+void WizBuSerial::setCompleteCode(bool rx, bool enable)
+{
+    qDebug() << QObject::tr("setCompleteCode rx = %1, enable = %2").arg(rx).arg(enable);
+    if (rx) {
+        m_rxHasCompleteCode = enable;
+    } else {
+        m_txHasCompleteCode = enable;
+    }
+}
 
 void WizBuSerial::readSettings()
 {
@@ -401,9 +411,9 @@ void WizBuSerial::readSettings()
 /*
     if (settings.value("Main/CompleteCode", true).toBool())
     {
-        appendCompleteCode = true;
+        m_txHasCompleteCode = true;
     }
-    else appendCompleteCode = false;
+    else m_txHasCompleteCode = false;
 */
 }
 
