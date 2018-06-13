@@ -311,8 +311,8 @@ void ISOTP_HANDLER::checkNeedFlush(uint64_t ID)
         if (messageBuffer[i].ID == ID)
         {
             //used to pass by reference but now newISOMessage should pass by value which makes it easier to use cross thread
-            //qDebug() << "Flushing a partial frame";
-            emit newISOMessage(messageBuffer[i]);
+            qDebug() << "Flushing a partial frame";
+            //emit newISOMessage(messageBuffer[i]); // the msg is wrong, we should not send it out
             messageBuffer.removeAt(i);
             return;
         }
