@@ -12,7 +12,7 @@
 #include "xframelogger.h"
 
 static const char g_logFileName[] = "./log.bf";
-static const int g_logFileMaxSize = 1024*1024;
+static const int g_logFileMaxSize = 256*1024*1024;
 static const int g_logFileMaxBkpNumber = 2;
 #endif
 
