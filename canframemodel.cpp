@@ -5,7 +5,16 @@
 #include <QPalette>
 #include <QDateTime>
 #include "utility.h"
+#ifdef VENDOR_SAPA
 
+#define LOG_ENABLE
+
+#include "xframelogger.h"
+
+static const char g_logFileName[] = "./log.bf";
+static const int g_logFileMaxSize = 1024*1024;
+static const int g_logFileMaxBkpNumber = 2;
+#endif
 
 CANFrameModel::~CANFrameModel()
 {
@@ -70,6 +79,13 @@ CANFrameModel::CANFrameModel(QObject *parent)
     needFilterRefresh = false;
     lastUpdateNumFrames = 0;
     timeFormat =  "MMM-dd HH:mm:ss.zzz";
+
+#if defined(VENDOR_SAPA) && defined(LOG_ENABLE)
+    m_frameLogger = new XFrameLogger(this);
+    // start log
+    m_frameLogger->startLog(g_logFileName, g_logFileMaxSize, g_logFileMaxBkpNumber);
+#endif
+
 }
 
 void CANFrameModel::setHexMode(bool mode)
@@ -367,6 +383,10 @@ void CANFrameModel::addFrame(const CANFrame& frame, bool autoRefresh = false)
         filters.insert(tempFrame.ID, true);
         needFilterRefresh = true;
     }
+
+#if defined(VENDOR_SAPA) && defined(LOG_ENABLE)
+    m_frameLogger->writeFrame(frame, 0);
+#endif
 
     if (!overwriteDups)
     {

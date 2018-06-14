@@ -10,6 +10,10 @@
 #include "dbc/dbchandler.h"
 #include "connections/canconnection.h"
 
+#ifdef VENDOR_SAPA	
+class XFrameLogger;
+#endif
+
 class CANFrameModel: public QAbstractTableModel
 {
     Q_OBJECT
@@ -71,6 +75,9 @@ private:
     uint64_t timeOffset;
     int lastUpdateNumFrames;
     uint32_t preallocSize;
+#ifdef VENDOR_SAPA	
+	XFrameLogger *m_frameLogger = NULL;
+#endif
 };
 
 
