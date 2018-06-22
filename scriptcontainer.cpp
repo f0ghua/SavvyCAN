@@ -398,7 +398,7 @@ void ISOTPScriptHelper::newISOMessage(ISOTP_MESSAGE msg)
 {
     qDebug() << "isotpScriptHelper got a ISOTP message";
     if (!gotFrameFunction.isCallable()) return; //nothing to do if we can't even call the function
-    qDebug() << "Got frame in script interface";
+    qDebug() << "Got frame in script interface, len = " << msg.len;
 
     QJSValueList args;
     args << msg.bus << msg.ID << msg.len;

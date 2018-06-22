@@ -54,7 +54,7 @@ private:
     bool handleValidateFrames(const QByteArray &cba);
 	
 protected:
-    QTimer             mTimer;
+    QTimer             *m_pTimer;
     QThread            mThread;
 
     bool doValidation;

@@ -297,11 +297,12 @@ bool WizBuSerial::piSendFrame(const CANFrame& frame)
 
 
 WizBuSerial::WizBuSerial(QString portName) :
-    CANConnection(portName, CANCon::GVRET_SERIAL, 1, 4000, true),
-    mTimer(this) /*NB: set this as parent of timer to manage it from working thread */
+    CANConnection(portName, CANCon::GVRET_SERIAL, 1, 4000, true)
 {
     qDebug() << "WizBuSerial()";
     debugOutput("WizBuSerial()");
+
+    m_pTimer = new QTimer(this); /*NB: set this as parent of timer to manage it from working thread */
 
     serial = NULL;
     rx_step = 0;
@@ -329,10 +330,10 @@ void WizBuSerial::piStarted()
     connectDevice();
 
     /* start timer */
-    connect(&mTimer, SIGNAL(timeout()), this, SLOT(handleTick()));
-    mTimer.setInterval(250); //tick four times per second
-    mTimer.setSingleShot(false); //keep ticking
-    mTimer.start();
+    connect(m_pTimer, SIGNAL(timeout()), this, SLOT(handleTick()));
+    m_pTimer->setInterval(250); //tick four times per second
+    m_pTimer->setSingleShot(false); //keep ticking
+    m_pTimer->start();
 
 	can0Baud = 57600;
 	mBusData[0].mBus.setSpeed(can0Baud);
@@ -361,7 +362,7 @@ void WizBuSerial::piSuspend(bool pSuspend)
 
 void WizBuSerial::piStop()
 {
-    mTimer.stop();
+    m_pTimer->stop();
     disconnectDevice();
 }
 

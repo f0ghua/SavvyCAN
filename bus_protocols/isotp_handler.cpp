@@ -227,6 +227,9 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
             for (int j = 0; j < 6; j++) msg.data.append(frame.data[2 + j]);
         }
         messageBuffer.append(msg);
+#ifndef F_NO_DEBUG
+        //qDebug() << QObject::tr("receive FF len = %1").arg(msg.len);
+#endif
         //The sending ID is set to the last ID we used to send from this class which is
         //very likely to be correct. But, caution, there is a chance that it isn't. Beware.
         if (issueFlowMsgs && lastSenderID > 0)
@@ -259,6 +262,10 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
         }
         if (!pMsg) return;
         ln = pMsg->len - pMsg->data.count();
+#ifndef F_NO_DEBUG
+         //qDebug() << QObject::tr("receive CF left len = %1").arg(ln);
+#endif
+
         //offset = pMsg->data.count();
         if (useExtendedAddressing)
         {
