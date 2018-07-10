@@ -64,7 +64,7 @@ bool WizBuSerial::buildCANFrame(CANFrame *frame, const QByteArray &ba)
         return false;
     }
     frame->bus = (protocol == PROTOCOL_ID_CAN1)?0:1;
-    frame->isReceived = (IS_BIT_SET(c, 1))?false:true;
+    frame->isReceived = true; //(IS_BIT_SET(c, 1))?false:true;
 
     bool hasTimeStamp = c & SAINT_TIMESTAMP_MASK;
 
