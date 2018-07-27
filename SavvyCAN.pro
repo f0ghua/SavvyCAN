@@ -65,7 +65,8 @@ SOURCES += main.cpp\
     bus_protocols/uds_handler.cpp \
     jsedit.cpp \
     frameplaybackobject.cpp \
-    xframelogger.cpp
+    xframelogger.cpp \
+    connections/wizbusocket.cpp
 
 HEADERS  += mainwindow.h \
     can_structs.h \
@@ -120,7 +121,8 @@ HEADERS  += mainwindow.h \
     bus_protocols/isotp_message.h \
     jsedit.h \
     frameplaybackobject.h \
-    xframelogger.h
+    xframelogger.h \
+    connections/wizbusocket.h
 
 FORMS    += ui/candatagrid.ui \
     ui/connectionwindow.ui \
