@@ -33,7 +33,9 @@ int main(int argc, char *argv[])
 #ifndef F_DISABLE_CRASHDUMP
 	SetUnhandledExceptionFilter(callback);
 #endif
-
+#ifndef F_NO_DEBUG
+    qSetMessagePattern("%{file}(%{line}): %{message}");
+#endif
     QApplication a(argc, argv);
 
     MainWindow w;

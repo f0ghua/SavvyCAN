@@ -36,15 +36,15 @@ signals:
     void updatePortName(QString port);
     void sendDebugData(QByteArray bytes);
 #ifdef VENDOR_SAPA	
-	void setCompleteCode(bool rx, bool enable);
+	//void setCompleteCode(bool rx, bool enable);
+    void localDevConnected(bool isConnected); // connect with ICITS
+    void remoteDevConnected(bool isConnected);
 #endif
 
 public slots:
     void setSpeed(int speed0);
     void setSWMode(bool mode);
-
     void setSuspendAll(bool pSuspend);
-
     void getDebugText(QString debugText);
 
 private slots:
@@ -61,8 +61,11 @@ private slots:
     void handleSendHex();
     void handleSendText();
     void connectionStatus(CANConStatus);
-    void on_ckRxCompleteCode_stateChanged(int arg1);
-    void on_ckTxCompleteCode_stateChanged(int arg1);
+    //void on_ckRxCompleteCode_toggled(bool checked);
+    //void on_ckTxCompleteCode_toggled(bool checked);
+    //void on_ckIsLocalDevConnected_stateChanged(int arg1);
+    void on_ckIsLocalDevConnected_toggled(bool checked);
+    void on_ckIsRemoteDevConnected_toggled(bool checked);
 
 private:
     Ui::ConnectionWindow *ui;

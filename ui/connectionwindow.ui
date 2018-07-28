@@ -77,7 +77,7 @@
         <item>
          <widget class="QRadioButton" name="rbGVRET">
           <property name="text">
-           <string>ICITS Serial</string>
+           <string>ICITS</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -199,20 +199,20 @@
      <item>
       <widget class="QGroupBox" name="groupBox">
        <property name="title">
-        <string>ICITS Serial Settings</string>
+        <string>ICITS Settings</string>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
-         <widget class="QCheckBox" name="ckRxCompleteCode">
+         <widget class="QCheckBox" name="ckIsLocalDevConnected">
           <property name="text">
-           <string>Enable RxCompleteCode</string>
+           <string>Local Device Connected</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QCheckBox" name="ckTxCompleteCode">
+         <widget class="QCheckBox" name="ckIsRemoteDevConnected">
           <property name="text">
-           <string>Enable TxCompleteCode</string>
+           <string>Remote Device Connected</string>
           </property>
          </widget>
         </item>

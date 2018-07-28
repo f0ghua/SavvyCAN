@@ -46,28 +46,37 @@ typedef enum
 
 typedef struct
 {
-    qint32 Size;//4
-    qint8 Command; //1
-    char Data[0];
+    qint32 size;//4
+    qint8 command; //1
+    char data[0];
 }__attribute__((packed)) COMMAND_DATA_PACKET; //Size = 8, Data[1] + 2 free bytes = 3 free bytes
 
 typedef struct
 {
-    qint32 DeviceID; //4
-    qint32 Size; //4
-    char Data[0]; //1
+    qint32 deviceID; //4
+    qint32 size; //4
+    char data[0]; //1
 }__attribute__((packed)) DEVICE_DATA_PACKET;
 
 class WizBuSocket : public CANConnection
 {
     Q_OBJECT
 
-public:    
+public:
+    enum WStatus {
+        eIdle = 0,
+        eSocketConnected,
+        eClientConnected,
+        eDeviceConnected
+    };
+
     WizBuSocket(QString portName);
     virtual ~WizBuSocket();
     bool rxCompleteCode() const {return m_rxHasCompleteCode;}
     bool txCompleteCode() const {return m_txHasCompleteCode;}
-	static QStringList availablePorts();
+	bool localDevConnected() const {return m_isLocalDevConnected;}
+	bool remoteDevConnected() const {return m_isRemoteDevConnected;}
+    QStringList availablePorts();
 	
 protected:
 
@@ -78,43 +87,46 @@ protected:
     virtual void piSuspend(bool pSuspend);
     virtual bool piSendFrame(const CANFrame&) ;
 
-    void disconnectDevice();
-
 signals:
+    void requestPorts();
 	void updateDeviceList(QStringList portList);
 	
 public slots:
     void debugInput(QByteArray bytes);
 	void setCompleteCode(bool rx, bool enable);
+	void setLocalDevConnected(bool isConnected);
+	void setRemoteDevConnected(bool isConnected);
 	
 private slots:
     void connectDevice();
     void connectionTimeout();
-    void readSerialData();
     void handleTick();
+    void readData();
 
 private:
     void readSettings();
-    void procRXChar(unsigned char);
     //void sendCommValidation();
     void rebuildLocalTimeBasis();
 	bool buildCANFrame(CANFrame *frame, const QByteArray &ba);
     bool handleValidateFrames(const QByteArray &cba);
     bool connectToServer();
+    void disconnectDevice();
     bool lookForServer();
     bool isConnected() {return getStatus() == CANCon::CONNECTED;}
-    bool isSockConnected() const {return m_isSockConnected;}
-    void setSockConnected(bool v) {m_isSockConnected = v;}
-    void SendCommand(COMMAND command, const void *pdata, int plen);
-    void SendData(COMMAND command, const void *pdata, int plen);
+    bool isSockConnected() const {return (m_wStatus >= eSocketConnected);}
+    void setWStatus(WStatus v) {m_wStatus = v;}
+    void sendCommand(COMMAND command, const void *pdata, int plen);
+    void sendData(COMMAND command, const void *pdata, int plen);
     void processDeviceData(DEVICE_DATA_PACKET *pDeviceData);
+    void processResponse(COMMAND_DATA_PACKET *commandData);
+    void processRequseDevices(QString s);
 
 protected:
     QTimer *m_pTimer;
     QThread mThread;
 
-    QTcpSocket *m_socket;
-    QString m_remoteIp;
+    QTcpSocket *m_socket = NULL;
+    WStatus m_wStatus = eIdle;
     bool m_isSockConnected = false;
 	QStringList m_deviceList;
     qint32 m_connId = -1;
@@ -137,6 +149,8 @@ protected:
     uint64_t timeAtGVRETSync;
     bool m_txHasCompleteCode = false;
 	bool m_rxHasCompleteCode = true;
+	bool m_isLocalDevConnected = false;
+	bool m_isRemoteDevConnected = false;
 };
 
 #endif

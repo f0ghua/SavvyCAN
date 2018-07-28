@@ -9,6 +9,8 @@
 #include "canbus.h"
 #ifdef VENDOR_SAPA
 #include "wizbuserial.h"
+#include "wizbusockethelper.h"
+#include "wizbusocket.h"
 #endif
 
 ConnectionWindow::ConnectionWindow(QWidget *parent) :
@@ -299,10 +301,16 @@ void ConnectionWindow::selectSerial()
     ui->stPort->setCurrentWidget(ui->cbPage);
 
     ui->cbPort->clear();
+#if 0
     ports = QSerialPortInfo::availablePorts();
-
     for (int i = 0; i < ports.count(); i++)
         ui->cbPort->addItem(ports[i].portName());
+#else
+    WizBuSocketHelper bs;
+    QStringList slPorts = bs.availablePorts();
+    for (int i = 0; i < slPorts.count(); i++)
+        ui->cbPort->addItem(slPorts.at(i));
+#endif
 }
 
 void ConnectionWindow::selectKvaser()
@@ -449,6 +457,7 @@ CANConnection* ConnectionWindow::create(CANCon::type pTye, QString pPortName)
         connect(conn_p, SIGNAL(status(CANConStatus)),
                 this, SLOT(connectionStatus(CANConStatus)));
 #ifdef VENDOR_SAPA	
+#if 0
         WizBuSerial *wconn_p = qobject_cast<WizBuSerial *>(conn_p);
         if (wconn_p) {
             qDebug() << QObject::tr("It's a wizbus connection, connect signals");
@@ -457,6 +466,20 @@ CANConnection* ConnectionWindow::create(CANCon::type pTye, QString pPortName)
             ui->ckRxCompleteCode->setChecked(wconn_p->rxCompleteCode());
             ui->ckTxCompleteCode->setChecked(wconn_p->txCompleteCode());
         }
+#else
+        WizBuSocket *wconn_p = qobject_cast<WizBuSocket *>(conn_p);
+        if (wconn_p) {
+#ifndef F_NO_DEBUG
+            qDebug() << QObject::tr("It's a wizbus connection, connect signals");
+#endif
+            connect(this, &ConnectionWindow::localDevConnected,
+                    wconn_p, &WizBuSocket::setLocalDevConnected);
+            connect(this, &ConnectionWindow::remoteDevConnected,
+                                wconn_p, &WizBuSocket::setRemoteDevConnected);
+
+            //ui->ckIsLocalDevConnected->setChecked(wconn_p->localDevConnected());
+        }
+#endif
 #endif
         /*TODO add return value and checks */
         conn_p->start();
@@ -490,10 +513,13 @@ void ConnectionWindow::loadConnections()
     }
 
 #ifdef VENDOR_SAPA
-    Qt::CheckState rxcc = static_cast<Qt::CheckState>(settings.value("icitsconn/rxCompleteCode").value<int>());
-    Qt::CheckState txcc = static_cast<Qt::CheckState>(settings.value("icitsconn/txCompleteCode").value<int>());
-    ui->ckRxCompleteCode->setCheckState(rxcc);
-    ui->ckTxCompleteCode->setCheckState(txcc);
+    Qt::CheckState isLocalDevConnected = static_cast<Qt::CheckState>(settings.value("icitsconn/isLocalDevConnected").value<int>());
+    ui->ckIsLocalDevConnected->setCheckState(isLocalDevConnected);
+    Qt::CheckState isRemoteDevConnected = static_cast<Qt::CheckState>(settings.value("icitsconn/isRemoteDevConnected").value<int>());
+    ui->ckIsLocalDevConnected->setCheckState(isRemoteDevConnected);
+
+    emit localDevConnected((isLocalDevConnected == Qt::Checked)?true:false);
+    emit remoteDevConnected((isRemoteDevConnected == Qt::Checked)?true:false);
 #endif
 }
 
@@ -516,27 +542,28 @@ void ConnectionWindow::saveConnections()
     settings.setValue("connections/types", QVariant::fromValue(devTypes));
 
 #ifdef VENDOR_SAPA
-    int rxcc = ui->ckRxCompleteCode->checkState();
-    int txcc = ui->ckTxCompleteCode->checkState();
-    settings.setValue("icitsconn/rxCompleteCode", QVariant::fromValue(rxcc));
-    settings.setValue("icitsconn/txCompleteCode", QVariant::fromValue(txcc));
+    int isLocalDevConnected = ui->ckIsLocalDevConnected->checkState();
+    settings.setValue("icitsconn/isLocalDevConnected", QVariant::fromValue(isLocalDevConnected));
+    int isRemoteDevConnected = ui->ckIsLocalDevConnected->checkState();
+    settings.setValue("icitsconn/isRemoteDevConnected", QVariant::fromValue(isRemoteDevConnected));
 #endif
 }
 
-void ConnectionWindow::on_ckRxCompleteCode_stateChanged(int arg1)
+void ConnectionWindow::on_ckIsLocalDevConnected_toggled(bool checked)
 {
-    if (arg1 == Qt::Checked) {
-        emit setCompleteCode(true, true);
+    if (checked == true) {
+        emit localDevConnected(true);
     } else {
-        emit setCompleteCode(true, false);
+        emit localDevConnected(false);
     }
 }
 
-void ConnectionWindow::on_ckTxCompleteCode_stateChanged(int arg1)
+void ConnectionWindow::on_ckIsRemoteDevConnected_toggled(bool checked)
 {
-    if (arg1 == Qt::Checked) {
-        emit setCompleteCode(false, true);
+    if (checked == true) {
+        emit remoteDevConnected(true);
     } else {
-        emit setCompleteCode(false, false);
+        emit remoteDevConnected(false);
     }
+
 }

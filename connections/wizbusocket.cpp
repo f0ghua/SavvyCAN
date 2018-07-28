@@ -28,6 +28,20 @@
 static const char g_frameEndStr[2]  = {(char)0xFF, 0x00};
 static const quint8 g_frameEscapeChar = 0xFF;
 
+static void packFrame(QByteArray &data)
+{
+	int pos, from = 0;
+
+	// escape 0xFF
+	while ((pos = data.indexOf(g_frameEscapeChar, from)) != -1) {
+		data.insert(pos, g_frameEscapeChar);
+		from = pos + 2; //jump 2 escape chars
+	}
+
+	// append the end
+	data.append(QByteArray::fromRawData(g_frameEndStr, sizeof(g_frameEndStr)));
+}
+
 static quint8 lin_calculate_checksum(quint8 *pdata, quint8 len)
 {
 	quint16 sum = 0, i = 0;
@@ -133,7 +147,7 @@ bool WizBuSocket::handleValidateFrames(const QByteArray &cba)
         qDebug() << QObject::tr("get version request");
 #endif
         QByteArray buffer = QByteArrayLiteral("\x08\x92\x49\x43\x49\x54\x53\x20\x53\x6F\x66\x74\x77\x61\x72\x65\x20\x56\x65\x72\x73\x69\x6F\x6E\x20\x4E\x75\x6D\x62\x65\x72\x3A\x20\x76\x31\x2E\x30\x36\x2E\x32\x37\x2E\x32\xFF\x00");
-        SendData(DEVICE_DATA, buffer.data(), buffer.size());
+        sendData(DEVICE_DATA, buffer.data(), buffer.size());
         return true;
     }
 
@@ -144,86 +158,11 @@ bool WizBuSocket::handleValidateFrames(const QByteArray &cba)
         qDebug() << QObject::tr("get publickey request");
 #endif
         QByteArray buffer = QByteArrayLiteral("\x08\xE0\xFF\x00");
-        SendData(DEVICE_DATA, buffer.data(), buffer.size());
+        sendData(DEVICE_DATA, buffer.data(), buffer.size());
         return true;
     }
 
     return false;
-}
-
-void WizBuSocket::procRXChar(unsigned char c)
-{
-    static unsigned char ffFlag = 0;
-    static QByteArray cba = QByteArray();
-
-    if ((c == 0xFF) && (ffFlag == 0)) // first 0xFF
-    {
-        ffFlag = 1;
-        return;
-    }
-
-    if (ffFlag == 0)
-    {
-        cba.append(c);
-    }
-    else
-    {
-        ffFlag = 0;
-        if (c == 0xFF) // 2 0xFF, the first one means escape character
-        {
-            //buildFrame->data.append(c);
-            cba.append(c);
-        }
-        else if (c == 0x00) // end of message
-        {
-            // check if a version request packet, is yes, response it
-            if (!handleValidateFrames(cba)) {
-                bool isValid = buildCANFrame(&buildFrame, cba);
-                if (isValid && (!isCapSuspended()) && buildFrame.isReceived) {
-                    /* get frame from queue */
-                    CANFrame* frame_p = getQueue().get();
-                    if(frame_p) {
-                        //qDebug() << "GVRET got frame on bus " << frame_p->bus;
-                        /* copy frame */
-                        *frame_p = buildFrame;
-                        checkTargettedFrame(buildFrame);
-                        /* enqueue frame */
-                        getQueue().queue();
-                    }
-                    else
-                        qDebug() << "can't get a frame, ERROR";
-                }
-                    //take the time the frame came in and try to resync the time base.
-                    //if (continuousTimeSync) txTimestampBasis = QDateTime::currentMSecsSinceEpoch() - (buildFrame.timestamp / 1000);
-            }
-            cba.clear();
-        }
-        else // a new message start
-        {
-			buildCANFrame(&buildFrame, cba);
-			if (!isCapSuspended() && buildFrame.isReceived)
-			{
-				/* get frame from queue */
-				CANFrame* frame_p = getQueue().get();
-				if(frame_p) {
-					//qDebug() << "GVRET got frame on bus " << frame_p->bus;
-					/* copy frame */
-					*frame_p = buildFrame;
-					checkTargettedFrame(buildFrame);
-					/* enqueue frame */
-					getQueue().queue();
-				}
-				else
-					qDebug() << "can't get a frame, ERROR";
-
-				//take the time the frame came in and try to resync the time base.
-				//if (continuousTimeSync) txTimestampBasis = QDateTime::currentMSecsSinceEpoch() - (buildFrame.timestamp / 1000);
-			}
-            cba.clear();
-
-            cba.append(c);
-        }
-    }
 }
 
 bool WizBuSocket::piSendFrame(const CANFrame& frame)
@@ -294,32 +233,39 @@ bool WizBuSocket::piSendFrame(const CANFrame& frame)
 #endif
     debugOutput("writing " + QString::number(buffer.length()) + " bytes to port");
 
-    SendData(DEVICE_DATA, buffer.data(), buffer.size());
+    sendData(DEVICE_DATA, buffer.data(), buffer.size());
 	return true;
 }
 
-void WizBuSocket::SendData(COMMAND command, const void *pdata, int plen)
+void WizBuSocket::sendData(COMMAND command, const void *pdata, int plen)
 {
-    if (!isConnected())
+    if (!isConnected()) {
         return;
+    }
 
 	qint32 len = plen + sizeof(DEVICE_DATA_PACKET) + sizeof(COMMAND_DATA_PACKET);
 	COMMAND_DATA_PACKET *commandData = (COMMAND_DATA_PACKET *)calloc(len, 1);
-	DEVICE_DATA_PACKET *pDeviceData = (DEVICE_DATA_PACKET *) (commandData->Data);
+    DEVICE_DATA_PACKET *pDeviceData = (DEVICE_DATA_PACKET *) (commandData->data);
 
     //qDebug()<<len << sizeof(DEVICE_DATA_PACKET) + sizeof(COMMAND_DATA_PACKET) << m_connId;
-    pDeviceData->DeviceID = m_connId;
+    pDeviceData->deviceID = m_connId;
     //strncpy(pDeviceData->Name, phydev.toLatin1().data(), sizeof(pDeviceData->Name));
-	pDeviceData->Size = plen;
-	commandData->Command = command;
-    commandData->Size = len;
+    pDeviceData->size = plen;
+    commandData->command = command;
+    commandData->size = len;
 
     if(plen != 0 && pdata !=NULL) {
-		memcpy(pDeviceData->Data, pdata, plen);
+        memcpy(pDeviceData->data, pdata, plen);
     }
 
 	m_socket->write((const char *)commandData, len);
-	
+
+#ifndef F_NO_DEBUG
+{
+    QByteArray ba((char *)commandData, len);
+    qDebug() << QObject::tr("sendData [%1]: %2").arg(len).arg(ba.toHex(' ').constData());
+}
+#endif    
 	free(commandData);
 }
 
@@ -424,6 +370,34 @@ void WizBuSocket::setCompleteCode(bool rx, bool enable)
     }
 }
 
+void WizBuSocket::setLocalDevConnected(bool isDevConnected)
+{
+#ifndef F_NO_DEBUG
+    qDebug() << QObject::tr("setLocalDevConnected %1").arg(isDevConnected);
+#endif
+    if (isDevConnected) {
+        m_isLocalDevConnected = true;
+        m_rxHasCompleteCode = true;
+    } else {
+        m_isLocalDevConnected = false;
+        m_rxHasCompleteCode = false;
+    }
+}
+
+void WizBuSocket::setRemoteDevConnected(bool isDevConnected)
+{
+#ifndef F_NO_DEBUG
+    qDebug() << QObject::tr("setRemoteDevConnected %1").arg(isDevConnected);
+#endif
+    if (isDevConnected) {
+        m_isRemoteDevConnected = true;
+        m_txHasCompleteCode = true;
+    } else {
+        m_isRemoteDevConnected = false;
+        m_txHasCompleteCode = false;
+    }
+}
+
 void WizBuSocket::readSettings()
 {
     QSettings settings;
@@ -442,9 +416,15 @@ void WizBuSocket::readSettings()
     }
     else m_txHasCompleteCode = false;
 */
+    Qt::CheckState isLocalDevConnected = static_cast<Qt::CheckState>(settings.value("icitsconn/isLocalDevConnected").value<int>());
+    setLocalDevConnected((isLocalDevConnected == Qt::Checked)?true:false);
+
+    Qt::CheckState isRemoteDevConnected = static_cast<Qt::CheckState>(settings.value("icitsconn/isRemoteDevConnected").value<int>());
+    setRemoteDevConnected((isRemoteDevConnected == Qt::Checked)?true:false);
+
 }
 
-void WizBuSocket::SendCommand(COMMAND command, const void *pdata, int plen)
+void WizBuSocket::sendCommand(COMMAND command, const void *pdata, int plen)
 {
     if(!isSockConnected() && (command != CLIENT_CONNECT))
         return;
@@ -452,11 +432,11 @@ void WizBuSocket::SendCommand(COMMAND command, const void *pdata, int plen)
     qint32 len = plen + sizeof(COMMAND_DATA_PACKET);
     COMMAND_DATA_PACKET *commandData = (COMMAND_DATA_PACKET *)calloc(len, 1);
 
-    commandData->Command = command;
-    commandData->Size = len;
+    commandData->command = command;
+    commandData->size = len;
 
     if(plen != 0 && pdata != NULL)
-        memcpy(commandData->Data, pdata, plen);
+        memcpy(commandData->data, pdata, plen);
 
 #ifndef F_NO_DEBUG
     {
@@ -474,19 +454,20 @@ bool WizBuSocket::connectToServer()
     if(m_socket == NULL) {
         m_socket = new QTcpSocket(this);
         connect(m_socket, SIGNAL(readyRead()), this, SLOT(readData()));
-        connect(m_socket, SIGNAL(disconnected()), this, SLOT(handleChange()));
+        //connect(m_socket, SIGNAL(disconnected()), this, SLOT(handleChange()));
     }
-    m_socket->connectToHost(m_remoteIp, 8000);
+    m_socket->connectToHost(QHostAddress::LocalHost, 8000);
     m_socket->waitForConnected(100);
 
     if (m_socket->state() != QAbstractSocket::ConnectedState)
         return false;
 
 #ifndef F_NO_DEBUG
-    qDebug()<<"CLIENT_CONNECT";
+    qDebug() << "CLIENT_CONNECT";
 #endif
+    setWStatus(eSocketConnected);
     QString name = QHostInfo::localHostName();
-    SendCommand(CLIENT_CONNECT, name.toLatin1().data(), name.size());
+    sendCommand(CLIENT_CONNECT, name.toLatin1().data(), name.size());
     return true;
 }
 
@@ -504,7 +485,7 @@ void WizBuSocket::connectDevice()
     }
 
     QString dev = getPort();
-    SendCommand(CONNECT_TO_DEVICE, dev.toLatin1().data(), dev.size());
+    sendCommand(CONNECT_TO_DEVICE, dev.toLatin1().data(), dev.size());
 
     m_receivedData.clear();
 }
@@ -515,7 +496,7 @@ void WizBuSocket::disconnectDevice()
 #ifndef F_NO_DEBUG
         qDebug()<<"DISCONNECT_FROM_DEVICE";
 #endif
-        SendCommand(DISCONNECT_FROM_DEVICE, &m_connId, sizeof(m_connId));
+        sendCommand(DISCONNECT_FROM_DEVICE, &m_connId, sizeof(m_connId));
     }
     
     //updateDeviceConnState(CLOSE_SUCC);
@@ -526,15 +507,15 @@ void WizBuSocket::disconnectDevice()
 
     if (m_socket != NULL) {
         m_socket->close();
-        setSockConnected(true);
     }
+
+    setWStatus(eIdle);
 
     setStatus(CANCon::NOT_CONNECTED);
     CANConStatus stats;
     stats.conStatus = getStatus();
     stats.numHardwareBuses = mNumBuses;
     emit status(stats);
-
 
     m_connId = -1;
 }
@@ -544,13 +525,14 @@ QStringList WizBuSocket::availablePorts()
 #ifndef F_NO_DEBUG
 	qDebug()<<"sig REQUEST_DEVICES";
 #endif
+
     if (!isSockConnected()) {
 		lookForServer();
 	}
-	SendCommand(REQUEST_DEVICES, NULL, 0);
+    sendCommand(REQUEST_DEVICES, NULL, 0);
+
     QEventLoop loop;
     QTimer timer;
-    
     timer.setSingleShot(true);
     connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
     QObject::connect(this, &WizBuSocket::updateDeviceList, &loop, &QEventLoop::quit);
@@ -584,13 +566,13 @@ void WizBuSocket::readData()
         //const char *p = m_receivedData.constData();
         pCmdData = (COMMAND_DATA_PACKET *)(m_receivedData.constData());
         if ((len < sizeof(COMMAND_DATA_PACKET)) ||
-                (len < pCmdData->Size)) { //partially data
+                (len < pCmdData->size)) { //partially data
             break;
         }
 
         processResponse(pCmdData);
-        len -= pCmdData->Size;
-        m_receivedData.remove(0, pCmdData->Size);
+        len -= pCmdData->size;
+        m_receivedData.remove(0, pCmdData->size);
     }
 #ifndef F_NO_DEBUG
     //qDebug() << QObject::tr("sockDataReceived done");
@@ -600,38 +582,40 @@ void WizBuSocket::readData()
 void WizBuSocket::processResponse(COMMAND_DATA_PACKET *commandData)
 {
     DEVICE_DATA_PACKET *pDeviceData;
-#if 0//ndef F_NO_DEBUG
+#ifndef F_NO_DEBUG
     qDebug() << QObject::tr("rxReq: c=%1, s=%2, d=%3").\
-                arg(commandData->Command).\
-                arg(commandData->Size).\
-                arg(QByteArray(commandData->Data, commandData->Size-5).toHex().constData());
+                arg(commandData->command).\
+                arg(commandData->size).\
+                arg(QByteArray(commandData->data, commandData->size-5).toHex(' ').constData());
 #endif
 
-    switch(commandData->Command) {
+    switch(commandData->command) {
 
         case CLIENT_CONNECT:
-            setSockConnected(true);
+            setWStatus(eClientConnected);
             break;
 
         case REQUEST_VERSION:
             break;
 
         case DEVICE_DATA:
-            pDeviceData = (DEVICE_DATA_PACKET *) (commandData->Data);
+            pDeviceData = (DEVICE_DATA_PACKET *) (commandData->data);
             processDeviceData(pDeviceData);
             break;
 
         case REQUEST_DEVICES:
-            processRequseDevices(commandData->Data);
+            processRequseDevices(commandData->data);
             break;
 
         case CONNECT_TO_DEVICE:
-            m_connId = (qint32)(*(commandData->Data));
+            m_connId = (qint32)(*(commandData->data));
 #ifndef F_NO_DEBUG
             qDebug()<<"commid " << m_connId;
 #endif
             if(m_connId != -1) {
                 //emit updateDeviceConnState(OPEN_SUCC);
+
+                setWStatus(eDeviceConnected);
 
                 setStatus(CANCon::CONNECTED);
                 CANConStatus stats;
@@ -639,18 +623,18 @@ void WizBuSocket::processResponse(COMMAND_DATA_PACKET *commandData)
                 stats.numHardwareBuses = mNumBuses;
                 emit status(stats);
             }
-            else
-                SendCommand(CONNECT_TO_DEVICE, phydev.toLatin1().data(), phydev.size());
+            else {
+                //sendCommand(CONNECT_TO_DEVICE, phydev.toLatin1().data(), phydev.size());
+            }
             break;
 
         case DEVICE_LIST_CHANGED:
-            PhyCloseDevice();
-            deleteSocket();
+            disconnectDevice();
             break;
 
         default:
 #ifndef F_NO_DEBUG
-            qDebug()<<"some ev" << commandData->Command;
+            qDebug()<<"some ev" << commandData->command;
 #endif
             break;
     }
@@ -658,22 +642,35 @@ void WizBuSocket::processResponse(COMMAND_DATA_PACKET *commandData)
 
 void WizBuSocket::processDeviceData(DEVICE_DATA_PACKET *pDeviceData)
 {
-    QByteArray cba(pDeviceData->Data, pDeviceData->Size);
+    if (isCapSuspended())
+        return;
+    
+    QByteArray cba(pDeviceData->data, pDeviceData->size);
 
     bool isValid = buildCANFrame(&buildFrame, cba);
-    if (isValid && (!isCapSuspended()) && buildFrame.isReceived) {
-        /* get frame from queue */
-        CANFrame* frame_p = getQueue().get();
-        if(frame_p) {
-            //qDebug() << "GVRET got frame on bus " << frame_p->bus;
-            /* copy frame */
-            *frame_p = buildFrame;
-            checkTargettedFrame(buildFrame);
-            /* enqueue frame */
-            getQueue().queue();
-        }
-        else
-            qDebug() << "can't get a frame, ERROR";
+    if (!isValid)
+        return;
+    
+    if (m_isLocalDevConnected && !buildFrame.isReceived)
+        return;
+    
+    /* get frame from queue */
+    CANFrame* frame_p = getQueue().get();
+    if(frame_p) {
+        /* copy frame */
+        *frame_p = buildFrame;
+        checkTargettedFrame(buildFrame);
+        /* enqueue frame */
+        getQueue().queue();
+    }
+    else {
+        qDebug() << "can't get a frame, ERROR";
+    }
+
+    if (!m_isRemoteDevConnected) {
+        cba.append(0x10); // add complete code
+        packFrame(cba);
+        sendData(DEVICE_DATA, cba.constData(), cba.size());
     }
 }
 

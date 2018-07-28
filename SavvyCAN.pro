@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT = core gui printsupport qml serialbus serialport widgets
+QT = core gui printsupport qml serialbus serialport widgets network
 
 CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
 
@@ -66,7 +66,8 @@ SOURCES += main.cpp\
     jsedit.cpp \
     frameplaybackobject.cpp \
     xframelogger.cpp \
-    connections/wizbusocket.cpp
+    connections/wizbusocket.cpp \
+    connections/wizbusockethelper.cpp
 
 HEADERS  += mainwindow.h \
     can_structs.h \
@@ -122,7 +123,9 @@ HEADERS  += mainwindow.h \
     jsedit.h \
     frameplaybackobject.h \
     xframelogger.h \
-    connections/wizbusocket.h
+    connections/wizbusocket.h \
+    connections/wizbusockethelper.h \
+    connections/wizbusockethelper_p.h
 
 FORMS    += ui/candatagrid.ui \
     ui/connectionwindow.ui \
