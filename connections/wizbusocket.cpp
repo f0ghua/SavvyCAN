@@ -354,8 +354,15 @@ void WizBuSocket::piSetBusSettings(int pBusIdx, CANBus bus)
     /* copy bus config */
     setBusConfig(pBusIdx, bus);
 
+        /* connect device */
+    if (!connectDevice()) {
+        disconnectDevice();
+        qDebug() << "can't connect device";
+    }
+
     qDebug() << "About to update bus " << pBusIdx << " on WIZBUS";
 
+    return;
 }
 
 
@@ -476,18 +483,19 @@ bool WizBuSocket::lookForServer()
     return connectToServer();
 }
 
-void WizBuSocket::connectDevice()
+bool WizBuSocket::connectDevice()
 {
     QSettings settings;
 
     if (!lookForServer()) {
-        return;
+        return false;
     }
 
     QString dev = getPort();
     sendCommand(CONNECT_TO_DEVICE, dev.toLatin1().data(), dev.size());
 
     m_receivedData.clear();
+    return true;
 }
 
 void WizBuSocket::disconnectDevice() 
@@ -647,12 +655,22 @@ void WizBuSocket::processDeviceData(DEVICE_DATA_PACKET *pDeviceData)
     
     QByteArray cba(pDeviceData->data, pDeviceData->size);
 
+    if (!m_isLocalDevConnected) {
+        if (handleValidateFrames(cba))
+            return;
+
+        buildFrame.isReceived = true;
+    }
+
     bool isValid = buildCANFrame(&buildFrame, cba);
     if (!isValid)
         return;
-    
-    if (m_isLocalDevConnected && !buildFrame.isReceived)
+
+    if (!m_isLocalDevConnected) {
+        buildFrame.isReceived = true;
+    } else if (!buildFrame.isReceived) {
         return;
+    }
     
     /* get frame from queue */
     CANFrame* frame_p = getQueue().get();

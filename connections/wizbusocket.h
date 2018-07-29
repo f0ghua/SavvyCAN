@@ -98,7 +98,7 @@ public slots:
 	void setRemoteDevConnected(bool isConnected);
 	
 private slots:
-    void connectDevice();
+    bool connectDevice();
     void connectionTimeout();
     void handleTick();
     void readData();
