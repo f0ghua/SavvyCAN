@@ -516,7 +516,7 @@ void ConnectionWindow::loadConnections()
     Qt::CheckState isLocalDevConnected = static_cast<Qt::CheckState>(settings.value("icitsconn/isLocalDevConnected").value<int>());
     ui->ckIsLocalDevConnected->setCheckState(isLocalDevConnected);
     Qt::CheckState isRemoteDevConnected = static_cast<Qt::CheckState>(settings.value("icitsconn/isRemoteDevConnected").value<int>());
-    ui->ckIsLocalDevConnected->setCheckState(isRemoteDevConnected);
+    ui->ckIsRemoteDevConnected->setCheckState(isRemoteDevConnected);
 
     emit localDevConnected((isLocalDevConnected == Qt::Checked)?true:false);
     emit remoteDevConnected((isRemoteDevConnected == Qt::Checked)?true:false);
@@ -544,7 +544,7 @@ void ConnectionWindow::saveConnections()
 #ifdef VENDOR_SAPA
     int isLocalDevConnected = ui->ckIsLocalDevConnected->checkState();
     settings.setValue("icitsconn/isLocalDevConnected", QVariant::fromValue(isLocalDevConnected));
-    int isRemoteDevConnected = ui->ckIsLocalDevConnected->checkState();
+    int isRemoteDevConnected = ui->ckIsRemoteDevConnected->checkState();
     settings.setValue("icitsconn/isRemoteDevConnected", QVariant::fromValue(isRemoteDevConnected));
 #endif
 }
