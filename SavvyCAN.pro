@@ -173,4 +173,7 @@ if (contains(DEFINES, VENDOR_SAPA)) {
     HEADERS += ccrashstack.h
 
     LIBS -= opengl32.lib
+
+#    include(libs/3rdparty/drmingw/drmingw.pri)
+    include(libs/private/QAppLogging/QAppLogging.pri)
 }

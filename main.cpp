@@ -1,4 +1,7 @@
 #include "mainwindow.h"
+#ifdef VENDOR_SAPA
+#include "QAppLogging.h"
+#endif
 #include <QApplication>
 
 #ifndef F_DISABLE_CRASHDUMP
@@ -33,8 +36,11 @@ int main(int argc, char *argv[])
 #ifndef F_DISABLE_CRASHDUMP
 	SetUnhandledExceptionFilter(callback);
 #endif
-#ifndef F_NO_DEBUG
-    qSetMessagePattern("%{file}(%{line}): %{message}");
+#ifdef VENDOR_SAPA
+    QAppLogging::instance()->setLogFileName("scLog.txt");
+    QAppLogging::instance()->setOutputDest(QAppLogging::eDestSystem|QAppLogging::eDestFile);
+    QAppLogging::installHandler();
+    qInfo() << "SavvyCAN is initializing ...";
 #endif
     QApplication a(argc, argv);
 

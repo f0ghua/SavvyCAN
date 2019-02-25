@@ -9,6 +9,7 @@
 
 #include "wizbusocket.h"
 #include "utility.h"
+#include "QAppLogging.h"
 
 //#ifdef VENDOR_SAPA
 
