@@ -384,11 +384,12 @@ void WizBuSocket::setLocalDevConnected(bool isDevConnected)
     qDebug() << QObject::tr("setLocalDevConnected %1").arg(isDevConnected);
 #endif
     if (isDevConnected) {
+        // When device is connected, we don't need to append complete code ourself
         m_isLocalDevConnected = true;
-        m_rxHasCompleteCode = true;
+        m_txHasCompleteCode = false;
     } else {
         m_isLocalDevConnected = false;
-        m_rxHasCompleteCode = false;
+        m_txHasCompleteCode = true;
     }
 }
 
@@ -398,11 +399,12 @@ void WizBuSocket::setRemoteDevConnected(bool isDevConnected)
     qDebug() << QObject::tr("setRemoteDevConnected %1").arg(isDevConnected);
 #endif
     if (isDevConnected) {
+        // When device is connected, data has completed code which we should remove it
         m_isRemoteDevConnected = true;
-        m_txHasCompleteCode = true;
+        m_rxHasCompleteCode = true;
     } else {
         m_isRemoteDevConnected = false;
-        m_txHasCompleteCode = false;
+        m_rxHasCompleteCode = false;
     }
 }
 
