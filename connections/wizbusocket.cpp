@@ -271,7 +271,7 @@ void WizBuSocket::sendData(COMMAND command, const void *pdata, int plen)
 }
 
 WizBuSocket::WizBuSocket(QString portName) :
-    CANConnection(portName, CANCon::GVRET_SERIAL, 1, 4000, true)
+    CANConnection(portName, CANCon::GVRET_SERIAL, 2, 4000, true)
 {
     qDebug() << "WizBuSocket()";
     debugOutput("WizBuSocket()");
