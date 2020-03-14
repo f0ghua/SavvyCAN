@@ -69,7 +69,7 @@ void ScriptContainer::compileScript()
     emit sendLog("Evaluate script done.");
 #endif
 
-    canHelper->clearFilters();
+    //canHelper->clearFilters();
     isoHelper->clearFilters();
     udsHelper->clearFilters();
 
