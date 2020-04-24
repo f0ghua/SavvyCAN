@@ -238,6 +238,7 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
             outFrame.bus = lastSenderBus;
             outFrame.extended = false;
 #ifdef VENDOR_SAPA		
+            outFrame.bus = frame.bus;
             if (lastSenderID > 0x7FF) outFrame.extended = true;
 #endif
 

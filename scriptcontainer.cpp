@@ -61,6 +61,10 @@ ScriptContainer::ScriptContainer()
 
 void ScriptContainer::compileScript()
 {
+    canHelper->clearFilters();
+    isoHelper->clearFilters();
+    udsHelper->clearFilters();
+    
     QJSValue result = scriptEngine.evaluate(scriptText, fileName);
 
 #ifndef VENDOR_SAPA
@@ -68,10 +72,6 @@ void ScriptContainer::compileScript()
 #else
     emit sendLog("Evaluate script done.");
 #endif
-
-    canHelper->clearFilters();
-    isoHelper->clearFilters();
-    udsHelper->clearFilters();
 
     if (result.isError())
     {
