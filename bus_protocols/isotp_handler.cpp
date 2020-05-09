@@ -184,7 +184,7 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
     switch(frameType)
     {
     case 0: //single frame message
-        checkNeedFlush(ID);
+        checkNeedFlush(ID, frame.bus);
 
         if (frameLen == 0) return; //length of zero isn't valid.
         if (frameLen > 6 && useExtendedAddressing) return; //impossible
@@ -203,7 +203,7 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
         emit newISOMessage(msg);
         break;
     case 1: //first frame of a multi-frame message
-        checkNeedFlush(ID);
+        checkNeedFlush(ID, frame.bus);
         msg.bus = frame.bus;
         msg.extended = frame.extended;
         msg.ID = ID;
@@ -255,7 +255,8 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
         pMsg = NULL;
         for (int i = 0; i < messageBuffer.length(); i++)
         {
-            if (messageBuffer[i].ID == ID)
+            if ((messageBuffer[i].ID == ID)
+                    && (messageBuffer[i].bus == frame.bus))
             {
                 pMsg = &messageBuffer[i];
                 break;
@@ -264,7 +265,7 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
         if (!pMsg) return;
         ln = pMsg->len - pMsg->data.count();
 #ifndef F_NO_DEBUG
-         //qDebug() << QObject::tr("receive CF left len = %1").arg(ln);
+         qDebug() << QObject::tr("bus %1: receive CF left len = %2").arg(pMsg->bus).arg(ln);
 #endif
 
         //offset = pMsg->data.count();
@@ -280,7 +281,9 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
         }
         if (pMsg->len <= pMsg->data.count())
         {
-            //qDebug() << "Emitting multiframe ISOTP message";
+#ifndef F_NO_DEBUG
+            qDebug() << "bus" << pMsg->bus << "Emitting multiframe ISOTP message";
+#endif
             emit newISOMessage(*pMsg);
         }
         break;
@@ -312,11 +315,12 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
     }
 }
 
-void ISOTP_HANDLER::checkNeedFlush(uint64_t ID)
+void ISOTP_HANDLER::checkNeedFlush(uint64_t ID, int bus)
 {
     for (int i = 0; i < messageBuffer.length(); i++)
     {
-        if (messageBuffer[i].ID == ID)
+        if ((messageBuffer[i].ID == ID)
+            && (messageBuffer[i].bus = bus))
         {
             //used to pass by reference but now newISOMessage should pass by value which makes it easier to use cross thread
             qDebug() << "Flushing a partial frame";

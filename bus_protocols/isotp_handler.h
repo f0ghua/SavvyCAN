@@ -51,7 +51,7 @@ private:
     uint32_t lastSenderBus;
 
     void processFrame(const CANFrame &frame);
-    void checkNeedFlush(uint64_t ID);
+    void checkNeedFlush(uint64_t ID, int bus);
 };
 
 #endif // ISOTP_HANDLER_H
