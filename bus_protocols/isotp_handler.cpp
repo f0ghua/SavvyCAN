@@ -184,8 +184,11 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
     switch(frameType)
     {
     case 0: //single frame message
+#ifdef VENDOR_SAPA
         checkNeedFlush(ID, frame.bus);
-
+#else
+        checkNeedFlush(ID);
+#endif
         if (frameLen == 0) return; //length of zero isn't valid.
         if (frameLen > 6 && useExtendedAddressing) return; //impossible
         if (frameLen > 7) return;
@@ -203,7 +206,11 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
         emit newISOMessage(msg);
         break;
     case 1: //first frame of a multi-frame message
+#ifdef VENDOR_SAPA
         checkNeedFlush(ID, frame.bus);
+#else
+        checkNeedFlush(ID);
+#endif
         msg.bus = frame.bus;
         msg.extended = frame.extended;
         msg.ID = ID;
@@ -256,7 +263,10 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
         for (int i = 0; i < messageBuffer.length(); i++)
         {
             if ((messageBuffer[i].ID == ID)
-                    && (messageBuffer[i].bus == frame.bus))
+#ifdef VENDOR_SAPA
+                    && (messageBuffer[i].bus == static_cast<int>(frame.bus))
+#endif
+                    )
             {
                 pMsg = &messageBuffer[i];
                 break;
@@ -320,7 +330,10 @@ void ISOTP_HANDLER::checkNeedFlush(uint64_t ID, int bus)
     for (int i = 0; i < messageBuffer.length(); i++)
     {
         if ((messageBuffer[i].ID == ID)
-            && (messageBuffer[i].bus = bus))
+#ifdef VENDOR_SAPA
+                && (messageBuffer[i].bus == bus)
+#endif
+                )
         {
             //used to pass by reference but now newISOMessage should pass by value which makes it easier to use cross thread
             qDebug() << "Flushing a partial frame";

@@ -300,6 +300,13 @@ void MainWindow::writeSettings()
         settings.setValue("Main/WindowSize", size());
         settings.setValue("Main/WindowPos", pos());
     }
+
+#ifdef VENDOR_SAPA
+    // a hack to make app use system time
+    if (!settings.value("Main/TimeClock", false).toBool()) {
+        settings.setValue("Main/TimeClock", true);
+    }
+#endif
 }
 
 void MainWindow::updateConnectionSettings(QString connectionType, QString port, int speed0, int speed1)

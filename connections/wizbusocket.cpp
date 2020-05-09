@@ -136,8 +136,7 @@ bool WizBuSocket::buildCANFrame(CANFrame *frame, const QByteArray &ba)
         frame->timestamp |= (ba.at(i) & 0xFF);
     }
 
-    if (//useSystemTime
-            true
+    if (useSystemTime
             ) {
         frame->timestamp = QDateTime::currentMSecsSinceEpoch() * 1000l;
     }
