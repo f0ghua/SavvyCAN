@@ -12,12 +12,14 @@ ISOTP_HANDLER::ISOTP_HANDLER()
 
     modelFrames = MainWindow::getReference()->getCANFrameModel()->getListReference();
 
-    connect(&frameTimer, SIGNAL(timeout()), this, SLOT(frameTimerTick()));
+    connect(&frameTimer[0], SIGNAL(timeout()), this, SLOT(frameTimerTick_bus1()));
+    connect(&frameTimer[1], SIGNAL(timeout()), this, SLOT(frameTimerTick_bus2()));
 }
 
 ISOTP_HANDLER::~ISOTP_HANDLER()
 {
-    disconnect(&frameTimer, SIGNAL(timeout()), this, SLOT(frameTimerTick()));
+    disconnect(&frameTimer[0], SIGNAL(timeout()), this, SLOT(frameTimerTick_bus1()));
+    disconnect(&frameTimer[1], SIGNAL(timeout()), this, SLOT(frameTimerTick_bus2()));
 }
 
 void ISOTP_HANDLER::setExtendedAddressing(bool mode)
@@ -87,10 +89,10 @@ void ISOTP_HANDLER::sendISOTPFrame(int bus, int ID, QVector<unsigned char> data)
         for (int i = 0; i < 6; i++) frame.data[2 + i] = data[currByte++];
         CANConManager::getInstance()->sendFrame(frame);
         //Queue up the rest of the frames
-        waitingForFlow = true;
-        frameTimer.setInterval(200); //wait a while for the flow frame to come in
-        frameTimer.setTimerType(Qt::PreciseTimer);
-        frameTimer.start();
+        waitingForFlow[bus] = true;
+        frameTimer[bus].setInterval(200); //wait a while for the flow frame to come in
+        frameTimer[bus].setTimerType(Qt::PreciseTimer);
+        frameTimer[bus].start();
         while (currByte < data.length())
         {
             for (int b = 0; b < 8; b++) frame.data[b] = 0x00;
@@ -100,7 +102,7 @@ void ISOTP_HANDLER::sendISOTPFrame(int bus, int ID, QVector<unsigned char> data)
             if (bytesToGo > 7) bytesToGo = 7;
             for (int i = 0; i < bytesToGo; i++) frame.data[1 + i] = data[currByte++];
             frame.len = 8;
-            sendingFrames.append(frame);
+            sendingFrames[bus].append(frame);
             //CANConManager::getInstance()->sendFrame(frame);
         }
     }
@@ -158,6 +160,7 @@ void ISOTP_HANDLER::rapidFrames(const CANConnection* conn, const QVector<CANFram
 void ISOTP_HANDLER::processFrame(const CANFrame &frame)
 {
     uint64_t ID = frame.ID;
+    int bus = static_cast<int>(frame.bus);
     int frameType;
     int frameLen;
     int ln;
@@ -185,7 +188,7 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
     {
     case 0: //single frame message
 #ifdef VENDOR_SAPA
-        checkNeedFlush(ID, frame.bus);
+        checkNeedFlush(ID, bus);
 #else
         checkNeedFlush(ID);
 #endif
@@ -207,7 +210,7 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
         break;
     case 1: //first frame of a multi-frame message
 #ifdef VENDOR_SAPA
-        checkNeedFlush(ID, frame.bus);
+        checkNeedFlush(ID, bus);
 #else
         checkNeedFlush(ID);
 #endif
@@ -301,25 +304,25 @@ void ISOTP_HANDLER::processFrame(const CANFrame &frame)
         switch (frameLen) //actually flow control type in this case
         {
         case 0: //continue to send frames but maybe change inter-frame delay
-            waitingForFlow = false;
+            waitingForFlow[bus] = false;
             //data[1] contains number of frames to send before waiting for next flow control
-            framesUntilFlow = frame.data[1];
-            if (framesUntilFlow == 0) framesUntilFlow = -1; //-1 means don't count frames and just keep going
+            framesUntilFlow[bus] = frame.data[1];
+            if (framesUntilFlow[bus] == 0) framesUntilFlow[bus] = -1; //-1 means don't count frames and just keep going
             //data[2] contains the interframe delay to use (0xF1 through 0xF9 are special through)
-            if (frame.data[2] < 0xF1) frameTimer.start(frame.data[2]); //set proper delay between frames
-            else frameTimer.start(1); //can't do sub-millisecond sending with this code so just use 1ms timing
+            if (frame.data[2] < 0xF1) frameTimer[bus].start(frame.data[2]); //set proper delay between frames
+            else frameTimer[bus].start(1); //can't do sub-millisecond sending with this code so just use 1ms timing
             break;
         case 1: //wait - do not send any more frames until other side says so
-            waitingForFlow = true;
-            frameTimer.stop(); //quit sending frames for now
+            waitingForFlow[bus] = true;
+            frameTimer[bus].stop(); //quit sending frames for now
             break;
         case 2: //overflow or abort. Assume this means abort and quit sending
-            frameTimer.stop();
-            sendingFrames.clear();
-            waitingForFlow = false;
+            frameTimer[bus].stop();
+            sendingFrames[bus].clear();
+            waitingForFlow[bus] = false;
             break;
         }
-        waitingForFlow = false;
+        waitingForFlow[bus] = false;
 
         break;
     }
@@ -344,32 +347,43 @@ void ISOTP_HANDLER::checkNeedFlush(uint64_t ID, int bus)
     }
 }
 
-void ISOTP_HANDLER::frameTimerTick()
+void ISOTP_HANDLER::frameTimerTick(int bus)
 {
     CANFrame frame;
-    if (!waitingForFlow)
+
+    if (!waitingForFlow[bus])
     {
-        if (!sendingFrames.isEmpty())
+        if (!sendingFrames[bus].isEmpty())
         {
-            frame = sendingFrames.takeFirst();
+            frame = sendingFrames[bus].takeFirst();
             CANConManager::getInstance()->sendFrame(frame);
-            if (framesUntilFlow > -1) framesUntilFlow--;
-            if (framesUntilFlow == 0) //stop sending and wait for another flow control message
+            if (framesUntilFlow[bus] > -1) framesUntilFlow[bus]--;
+            if (framesUntilFlow[bus] == 0) //stop sending and wait for another flow control message
             {
-                frameTimer.stop(); //we absolutely will not send anything until other side says to.
-                waitingForFlow = true;
+                frameTimer[bus].stop(); //we absolutely will not send anything until other side says to.
+                waitingForFlow[bus] = true;
             }
         }
         else //no more frames to send
         {
-            frameTimer.stop();
+            frameTimer[bus].stop();
         }
     }
     else //while waiting for a flow frame we didn't get one during timeout period. Try to send anyway with default timeout
     {
-        waitingForFlow = false;
-        frameTimer.setInterval(20); //pretty slow sending which should be OK as a default
+        waitingForFlow[bus] = false;
+        frameTimer[bus].setInterval(20); //pretty slow sending which should be OK as a default
     }
+}
+
+void ISOTP_HANDLER::frameTimerTick_bus1()
+{
+    frameTimerTick(0);
+}
+
+void ISOTP_HANDLER::frameTimerTick_bus2()
+{
+    frameTimerTick(1);
 }
 
 void ISOTP_HANDLER::setProcessAll(bool state)
